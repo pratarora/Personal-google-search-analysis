@@ -4,25 +4,33 @@ setwd(
   "E:/Data Science/Google data Prateek January 2018/google data/Analysis/Searches"
 )
 
-
+#libraries
 library(jsonlite)
 library(tidyjson)
 library(tidyverse)
 library(httr)
 library(lubridate)
-Folderadd <-
-  "E:/Data Science/Google data Prateek January 2018/google data/Analysis/Searches"
-filename <-
-  "2017-10-01 October 2017 to December 2017"
-format <- ".json"
-fulladdress <- paste(filename, format, sep = "")
 
-# data <- stream_in(file(fulladdress))
-data <-   fromJSON(fulladdress,simplifyMatrix = TRUE, flatten = TRUE) %>% as.data.frame() %>% unnest(event.query.id)
+
+
+file_list <- list.files(pattern = ".json")
+
+pages <- list()
+for(i in seq_along(file_list)){
+  
+  data <- fromJSON(file_list[i],simplifyMatrix = TRUE, flatten = TRUE) %>% #read JSON file
+    as.data.frame() %>% #convert it into data frame
+    unnest(event.query.id) # unnest the filed to get time stamp
+    pages[[i]] <- data #append pages list to add new data
+}
+#combine all files
+data <- rbind_pages(pages)
+
+
+#change time in microsecond to seconds
 data_timechanged <- data %>% mutate(timestamp_msec = as.numeric(timestamp_usec)/1000000)
 
-
-
-
-colnames(data)
+#convert epoch time to date and time
 data_timechanged <- data_timechanged %>% mutate(searchtime = as_datetime(timestamp_msec))
+
+
