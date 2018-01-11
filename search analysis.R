@@ -239,7 +239,7 @@ print(y)
 
 
 #to create wordcloud--------
-nameremove <- c("Current Location","Mumbai","India","Maharastra","Pune")
+nameremove <- c("Current Location","Mumbai","India","Maharastra","Pune","Hampshire International Business Park")
 data_filtered <- data_timechanged %>% filter( fulldatetime >= "2017-01-01 00:00:00" & fulldatetime <= "2017-12-31 00:00:00")
 data_locationremoved <- filter(data_filtered, !str_detect(search_query, paste(nameremove,collapse = '|')))
 
@@ -251,11 +251,13 @@ corpp <- Corpus(VectorSource(data_locationremoved$search_query)) %>%
   tm_map(removeWords, c(stopwords("english"))) %>%
   tm_map(stripWhitespace) #%>%
 # tm_map(PlainTextDocument)
+# docs <- tm_map(docs, stemDocument)
+
 tdm <- TermDocumentMatrix(corpp)
 m <- as.matrix(tdm)
 v <- sort(rowSums(m),decreasing=TRUE)
 d <- data.frame(word = names(v),freq=v)
-dd<-subset(d,freq>10)
+dd<-subset(d,freq>20)
 png(filename = "wordsin_2017.png",
     width = 10, height = 10, units = "cm", pointsize = 12,res=500,
     bg = "white",   type = c("cairo"))
@@ -264,9 +266,13 @@ wordcloud(d$word,d$freq,scale=c(4,0.5),max.words = 150,rot.per = 0.35,
           random.order = FALSE, colors=brewer.pal(8, "Dark2"))
 dev.off()
 
-wordcloud2(data=dd, size = 1, minSize = 0, gridSize =  0,
+figPath = "E:/Data Science/Google data Prateek January 2018/google data/Analysis/Searches/december.png"
+wordcloud2(data=dd, size = 0.5, minSize = 10, gridSize =  2,
            fontFamily = 'Segoe UI', fontWeight = 'bold',
-           color = 'random-dark', backgroundColor = "white",
+           color = 'random-light', backgroundColor = "grey",
            minRotation = -pi/4, maxRotation = pi/4, shuffle = FALSE,
-           rotateRatio = 0.4, shape = 'circle', ellipticity = 0.65,
+           rotateRatio = 0.6, shape = 'cirlce', ellipticity = 0.5,
            widgetsize = NULL, figPath = NULL)
+findAssocs(tdm, terms = "germany", corlimit = 0.3)
+
+
