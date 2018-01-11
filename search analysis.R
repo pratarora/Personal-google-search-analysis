@@ -194,3 +194,4 @@ u <- ggplot(data=data_timechanged,aes(x= sort(Weekday), weekdaycount))+
   theme(axis.text.x = element_text(angle=45, hjust=1),
         plot.title = element_text(hjust = 0.5))
 print(u)
+
