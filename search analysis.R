@@ -15,6 +15,7 @@ library(tm)
 library(ColorPalette)
 library(RColorBrewer)
 library(wordcloud)
+library(wordcloud2)
 set.seed(2008)
 
 
@@ -262,3 +263,10 @@ par(mar=c(0.3,0.3,0.3,0.3))
 wordcloud(d$word,d$freq,scale=c(4,0.5),max.words = 150,rot.per = 0.35,
           random.order = FALSE, colors=brewer.pal(8, "Dark2"))
 dev.off()
+
+wordcloud2(data=dd, size = 1, minSize = 0, gridSize =  0,
+           fontFamily = 'Segoe UI', fontWeight = 'bold',
+           color = 'random-dark', backgroundColor = "white",
+           minRotation = -pi/4, maxRotation = pi/4, shuffle = FALSE,
+           rotateRatio = 0.4, shape = 'circle', ellipticity = 0.65,
+           widgetsize = NULL, figPath = NULL)
