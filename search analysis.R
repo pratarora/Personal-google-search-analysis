@@ -12,7 +12,7 @@ library(scales)
 set.seed(2008)
 
 
-
+# read all json files----------
 file_list <- list.files(pattern = ".json")
 
 pages <- list()
@@ -28,15 +28,16 @@ for (i in seq_along(file_list)) {
 data <- rbind_pages(pages)
 
 
-#change time in microsecond to seconds
-data_timechanged <- data %>%
-  mutate(timestamp_msec = as.numeric(timestamp_usec) / 1000000)
+# #change time in microsecond to seconds
+# data_timechanged <- data %>%
+#   mutate()
+#make main dataframe----
 
-rm(data)
-#convert epoch time to date and time----
-data_timechanged <- data_timechanged %>%
+#convert epoch time to date and time
+data_timechanged <- data %>%
   rename('search_query' = 'event.query.query_text') %>%
   mutate(
+    timestamp_msec = as.numeric(timestamp_usec) / 1000000,
     fulldatetime = as_datetime(timestamp_msec, tz = "Asia/Calcutta"),
     time = format(fulldatetime, "%T", tz = "Asia/Calcutta"),
     Hour = as_datetime(cut(fulldatetime, breaks = "hour")),
@@ -46,14 +47,16 @@ data_timechanged <- data_timechanged %>%
     Month =  as.Date(cut(fulldatetime, breaks = "month")),
     Quarter =  as.Date(cut(fulldatetime, breaks = "quarter")),
     Year =  as.Date(cut(fulldatetime, breaks = "year")),
-    allmonths = format(fulldatetime, "%b", tz = "Asia/Calcutta"),
+    allmonths = format(fulldatetime, "%m", tz = "Asia/Calcutta"),
     alldates = format(fulldatetime, "%D", tz = "Asia/Calcutta"),
     allhour = format(fulldatetime, "%H", tz = "Asia/Calcutta")
    ) %>% select(-timestamp_usec,-timestamp_msec)
 
 data_timechanged$Weekday <- factor(data_timechanged$Weekday, levels= c("Sunday", "Monday", 
                                          "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"))
+rm(data)
 
+#allcounts and merging in main dataframe----
 yearlystats <- data_timechanged %>%  group_by(Year) %>% summarise(yearlycount= n())
 data_timechanged <-  merge(data_timechanged,yearlystats)
 
@@ -79,15 +82,18 @@ data_timechanged <-  merge(data_timechanged,hourlystats)
 
 data_filtered <- data_timechanged %>% filter( fulldatetime >= "2017-12-01 00:00:00" & Day <= "2017-12-31 00:00:00")
 
+
+#various graphs for pooled data----------
 #pooled Hourly data
-p <- ggplot(data_timechanged, aes(x=as.numeric(allhour),y= hourlycount))+
+p <- ggplot(data_timechanged, aes(x=allhour,y= hourlycount))+
   stat_summary(aes(x= as.numeric(allhour),y= hourlycount),fun.y = length, # adds up all observations for the month
                geom = "bar", colour= "dark blue", alpha= 0.7)+
   stat_summary(aes(x= as.numeric(allhour),y= hourlycount),fun.y = length, # adds up all observations for the month
                geom = "line", colour= "red", alpha= 0.8, size= 1) +
   labs(title= "Hourly Searches",x= "Time(in Hours)", y= "Count")+
+  # scale_x_discrete(labels= (data_timechanged$allhour))+
   theme(plot.title = element_text(hjust = 0.5))
-  
+
   # geom_freqpoly(bins=12, alpha=0.7,colour="red",closed = c("right", "left"))+
   # geom_point(aes(y= hourlycount))
   # geom_histogram(bins=12, alpha=0.5, colour="black",fill="blue")
@@ -194,4 +200,21 @@ u <- ggplot(data=data_timechanged,aes(x= sort(Weekday), weekdaycount))+
   theme(axis.text.x = element_text(angle=45, hjust=1),
         plot.title = element_text(hjust = 0.5))
 print(u)
+
+#pooled monthly
+w <- ggplot(data_timechanged, aes(x=allmonths,y= monthlycount))+
+  stat_summary(fun.y = length, # adds up all observations for the month
+               geom = "bar", colour= "dark blue", alpha= 0.7)+
+  stat_summary(fun.y = length, # adds up all observations for the month
+               geom = "line", colour= "red", alpha= 0.8, size= 1) +
+  labs(title= "Monthly Searches",x= "Months", y= "Count")+
+  theme(plot.title = element_text(hjust = 0.5))+
+  scale_x_discrete(labels= month.name)+
+theme(axis.text.x = element_text(angle=45, hjust=1),
+      plot.title = element_text(hjust = 0.5))
+# geom_freqpoly(bins=12, alpha=0.7,colour="red",closed = c("right", "left"))+
+# geom_point(aes(y= hourlycount))
+# geom_histogram(bins=12, alpha=0.5, colour="black",fill="blue")
+# geom_line()+geom_point()#+scale_x_datetime()
+print(w)
 
