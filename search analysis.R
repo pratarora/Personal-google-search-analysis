@@ -139,7 +139,11 @@ r <- ggplot(data = data_timechanged,
   # geom_point(colour="red", alpha= 0.5, shape= 21)+
   geom_smooth()+
   scale_x_date(
+<<<<<<< HEAD
     labels = date_format("%b-'%y"),
+=======
+    labels = date_format("%d-%b-'%y"),
+>>>>>>> c3a53d6e572c20a68f66124412629e1bc21ba135
     date_breaks = "1 year")+
   labs(title= "Monthly Searches",x= "Time", y= "Count")+
   theme(axis.text.x = element_text(angle=45, hjust=1),
@@ -156,7 +160,11 @@ s <- ggplot(data = data_timechanged,
   # geom_point(colour="red", alpha= 0.5, shape= 21)+
   geom_smooth()+
   scale_x_date(
+<<<<<<< HEAD
     labels = date_format("%b-'%y"),
+=======
+    labels = date_format("%d-%b-'%y"),
+>>>>>>> c3a53d6e572c20a68f66124412629e1bc21ba135
     date_breaks = "1 year")+
   labs(title= "Quarterly Searches",x= "Time", y= "Count")+
   theme(axis.text.x = element_text(angle=45, hjust=1),
@@ -175,14 +183,21 @@ t <- ggplot(data = data_timechanged,
   # geom_point(colour="red", alpha= 0.5, shape= 21)+
   geom_smooth()+
   scale_x_date(
+<<<<<<< HEAD
     labels = date_format("%Y"),
+=======
+    labels = date_format("%d-%b-'%y"),
+>>>>>>> c3a53d6e572c20a68f66124412629e1bc21ba135
     date_breaks = "1 year")+
   labs(title= "Yearly Searches",x= "Time", y= "Count")+
   theme(axis.text.x = element_text(angle=45, hjust=1),
         plot.title = element_text(hjust = 0.5))
 print(t)
 
+<<<<<<< HEAD
 #weekday searches
+=======
+>>>>>>> c3a53d6e572c20a68f66124412629e1bc21ba135
 u <- ggplot(data=data_timechanged,aes(x= sort(Weekday), weekdaycount))+
   stat_summary(fun.y = length, # adds up all observations for the month
                geom = "bar", colour= "dark blue", alpha= 0.8) + # or "line"
@@ -190,7 +205,14 @@ u <- ggplot(data=data_timechanged,aes(x= sort(Weekday), weekdaycount))+
                geom = "line", colour= "red", alpha= 1, size= 0.8) + # or "line"
   # geom_point(colour="red", alpha= 0.5, shape= 21)+
   geom_smooth()+
+<<<<<<< HEAD
   labs(title= "Searches on various days of the Week",x= "Day", y= "Count")+
+=======
+  # scale_x_date(
+  #   labels = date_format("%d-%b-'%y"),
+  #   date_breaks = "1 year")+
+  labs(title= "Yearly Searches",x= "Day", y= "Count")+
+>>>>>>> c3a53d6e572c20a68f66124412629e1bc21ba135
   theme(axis.text.x = element_text(angle=45, hjust=1),
         plot.title = element_text(hjust = 0.5))
 print(u)
