@@ -2,13 +2,19 @@ rm(list = ls())
 #sets a working directory-----------
 setwd("E:/Data Science/Google data Prateek January 2018/google data/Analysis/Searches")
 
-#libraries
+#libraries-----------
 library(jsonlite)
 library(tidyjson)
 library(tidyverse)
 library(httr)
 library(lubridate)
 library(scales)
+library(stringr)
+library(SnowballC)
+library(tm)
+library(ColorPalette)
+library(RColorBrewer)
+library(wordcloud)
 set.seed(2008)
 
 
@@ -80,7 +86,7 @@ data_timechanged <-  merge(data_timechanged,hourlystats)
 
 # rm(list=setdiff(ls(), "data_timechanged"))
 
-data_filtered <- data_timechanged %>% filter( fulldatetime >= "2017-12-01 00:00:00" & Day <= "2017-12-31 00:00:00")
+
 
 
 #various graphs for pooled data----------
@@ -228,3 +234,31 @@ y <- ggplot(data_timechanged, aes(x=alldates,y= dailycount))+
     theme(axis.text.x = element_text(angle=45, hjust=1),
         plot.title = element_text(hjust = 0.5))
 print(y)
+
+
+
+#to create wordcloud--------
+nameremove <- c("Current Location","Mumbai","India","Maharastra","Pune")
+data_filtered <- data_timechanged %>% filter( fulldatetime >= "2017-01-01 00:00:00" & fulldatetime <= "2017-12-31 00:00:00")
+data_locationremoved <- filter(data_filtered, !str_detect(search_query, paste(nameremove,collapse = '|')))
+
+
+corpp <- Corpus(VectorSource(data_locationremoved$search_query)) %>%
+  tm_map(removePunctuation) %>%
+  # tm_map(removeNumbers) %>%
+  tm_map(tolower)  %>%
+  tm_map(removeWords, c(stopwords("english"))) %>%
+  tm_map(stripWhitespace) #%>%
+# tm_map(PlainTextDocument)
+tdm <- TermDocumentMatrix(corpp)
+m <- as.matrix(tdm)
+v <- sort(rowSums(m),decreasing=TRUE)
+d <- data.frame(word = names(v),freq=v)
+dd<-subset(d,freq>10)
+png(filename = "wordsin_2017.png",
+    width = 10, height = 10, units = "cm", pointsize = 12,res=500,
+    bg = "white",   type = c("cairo"))
+par(mar=c(0.3,0.3,0.3,0.3))
+wordcloud(d$word,d$freq,scale=c(4,0.5),max.words = 150,rot.per = 0.35,
+          random.order = FALSE, colors=brewer.pal(8, "Dark2"))
+dev.off()
