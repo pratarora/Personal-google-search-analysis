@@ -48,7 +48,7 @@ data_timechanged <- data %>%
     Quarter =  as.Date(cut(fulldatetime, breaks = "quarter")),
     Year =  as.Date(cut(fulldatetime, breaks = "year")),
     allmonths = format(fulldatetime, "%m", tz = "Asia/Calcutta"),
-    alldates = format(fulldatetime, "%D", tz = "Asia/Calcutta"),
+    alldates = format(fulldatetime, "%d", tz = "Asia/Calcutta"),
     allhour = format(fulldatetime, "%H", tz = "Asia/Calcutta")
    ) %>% select(-timestamp_usec,-timestamp_msec)
 
@@ -207,8 +207,7 @@ w <- ggplot(data_timechanged, aes(x=allmonths,y= monthlycount))+
                geom = "bar", colour= "dark blue", alpha= 0.7)+
   stat_summary(fun.y = length, # adds up all observations for the month
                geom = "line", colour= "red", alpha= 0.8, size= 1) +
-  labs(title= "Monthly Searches",x= "Months", y= "Count")+
-  theme(plot.title = element_text(hjust = 0.5))+
+  labs(title= "Searches on various Months of the Year",x= "Months", y= "Count")+
   scale_x_discrete(labels= month.name)+
 theme(axis.text.x = element_text(angle=45, hjust=1),
       plot.title = element_text(hjust = 0.5))
@@ -218,3 +217,14 @@ theme(axis.text.x = element_text(angle=45, hjust=1),
 # geom_line()+geom_point()#+scale_x_datetime()
 print(w)
 
+#pooled datewise searches
+y <- ggplot(data_timechanged, aes(x=alldates,y= dailycount))+
+  stat_summary(fun.y = length, # adds up all observations for the month
+               geom = "bar", colour= "dark blue", alpha= 0.7)+
+  stat_summary(fun.y = length, # adds up all observations for the month
+               geom = "line", colour= "red", alpha= 0.8, size= 1) +
+  labs(title= "Searches on various Dates in a Month",x= "Months", y= "Count")+
+  scale_x_discrete(breaks = c(seq(0,30,10)))+
+    theme(axis.text.x = element_text(angle=45, hjust=1),
+        plot.title = element_text(hjust = 0.5))
+print(y)
