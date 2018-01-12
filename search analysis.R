@@ -85,7 +85,7 @@ data_timechanged <-  merge(data_timechanged,dailystats)
 hourlystats <- data_timechanged %>%  group_by(Hour) %>% summarise(hourlycount= n()) 
 data_timechanged <-  merge(data_timechanged,hourlystats)
 
-# rm(list=setdiff(ls(), "data_timechanged"))
+rm(list=setdiff(ls(), "data_timechanged"))
 
 
 
@@ -240,7 +240,7 @@ print(y)
 
 #to create wordcloud--------
 nameremove <- c("Current Location","Mumbai","India","Maharastra","Pune","Hampshire International Business Park")
-data_filtered <- data_timechanged %>% filter( fulldatetime >= "2017-01-01 00:00:00" & fulldatetime <= "2017-12-31 00:00:00")
+data_filtered <- data_timechanged %>% filter( fulldatetime >= "2008-01-01 00:00:00" & fulldatetime <= "2008-12-31 00:00:00")
 data_locationremoved <- filter(data_filtered, !str_detect(search_query, paste(nameremove,collapse = '|')))
 
 
@@ -258,7 +258,7 @@ m <- as.matrix(tdm)
 v <- sort(rowSums(m),decreasing=TRUE)
 d <- data.frame(word = names(v),freq=v)
 dd<-subset(d,freq>20)
-png(filename = "wordsin_2017.png",
+png(filename = "wordsin_2008.png",
     width = 10, height = 10, units = "cm", pointsize = 12,res=500,
     bg = "white",   type = c("cairo"))
 par(mar=c(0.3,0.3,0.3,0.3))
@@ -271,11 +271,13 @@ wordcloud2(data=dd, size = 0.5, minSize = 10, gridSize =  2,
            fontFamily = 'Segoe UI', fontWeight = 'bold',
            color = 'random-light', backgroundColor = "grey",
            minRotation = -pi/4, maxRotation = pi/4, shuffle = FALSE,
-           rotateRatio = 0.6, shape = 'cirlce', ellipticity = 0.5,
+           rotateRatio = 0.6, shape = NULL, ellipticity = 1,
            widgetsize = NULL, figPath = NULL)
 
+#to find association between words (which word is usually used with which word)
+findAssocs(tdm, terms = "college", corlimit = 0.3)
 
-findAssocs(tdm, terms = "germany", corlimit = 0.3)
+
 dd <- dd %>% head(20)
 p<- ggplot(data= dd, aes(x = reorder(word, -freq), y = freq, fill= word))+
   geom_bar(stat="identity")+
@@ -284,4 +286,25 @@ p<- ggplot(data= dd, aes(x = reorder(word, -freq), y = freq, fill= word))+
         plot.title = element_text(hjust = 0.5))+
   labs(title="Most frequently searched words", x="Words", y="Frequency")
 print(p)
-str(dd)
+
+
+#data_filtered------
+daterange<-as.Date(c("2015-01-01",max(data_timechanged$fulldatetime)))
+
+rterms <- c("ggplot"," in r","tidyr", "stringr","dplyr", "lubridate","tidyr","tidyverse","scales","data.table","locfit")
+
+data_filtered_r <- data_timechanged %>% filter(str_detect(search_query,paste(rterms,collapse="|")))
+
+termstoremove_R <- c("rajdhani","rupee","rome","room","research","rej","reg","rail","rys","reddit","ric")
+
+data_filtered_r <- filter(data_filtered_r,!str_detect(search_query,paste(termstoremove,collapse="|")))
+
+aa <- ggplot(data= data_filtered_r, aes(x=Week))+
+  geom_bar(stat="count",fill="blue" ) +
+  geom_freqpoly(color="red")+
+  scale_x_date(labels = date_format("%Y"),breaks = date_breaks("1 year"),
+               limits = daterange)+
+  labs(title="Searches related to R", x="Time", y="Frequency")
+print(aa)
+
+
