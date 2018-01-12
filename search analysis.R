@@ -273,6 +273,15 @@ wordcloud2(data=dd, size = 0.5, minSize = 10, gridSize =  2,
            minRotation = -pi/4, maxRotation = pi/4, shuffle = FALSE,
            rotateRatio = 0.6, shape = 'cirlce', ellipticity = 0.5,
            widgetsize = NULL, figPath = NULL)
+
+
 findAssocs(tdm, terms = "germany", corlimit = 0.3)
-
-
+dd <- dd %>% head(20)
+p<- ggplot(data= dd, aes(x = reorder(word, -freq), y = freq, fill= word))+
+  geom_bar(stat="identity")+
+    scale_fill_grey(start = 0.8, end = 0.2,guide=FALSE)+
+  theme(axis.text.x = element_text(angle=60, hjust=1),
+        plot.title = element_text(hjust = 0.5))+
+  labs(title="Most frequently searched words", x="Words", y="Frequency")
+print(p)
+str(dd)
