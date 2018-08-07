@@ -7,7 +7,11 @@ library(jsonlite)
 library(ggplot2)
 library(tidyr)
 library(dplyr)
+<<<<<<< HEAD
 library(broom)
+=======
+# library(broom)
+>>>>>>> 7bc3c63b652c4abd0066b24ce9cb1fb831038c8d
 library(tibble)
 library(purrr)
 library(readr)
@@ -22,7 +26,10 @@ library(RColorBrewer)
 library(wordcloud)
 library(wordcloud2)
 library(topicmodels)
+<<<<<<< HEAD
 library(methods)
+=======
+>>>>>>> 7bc3c63b652c4abd0066b24ce9cb1fb831038c8d
 
 set.seed(2008)
 
@@ -317,6 +324,7 @@ print(aa)
 
 
 top_terms_by_topic_LDA <- function(input_text, # should be a columm from a dataframe
+<<<<<<< HEAD
 plot = T, # return a plot? TRUE by defult
 number_of_topics = 4) # number of topics (4 by default)
 {
@@ -327,6 +335,13 @@ number_of_topics = 4) # number of topics (4 by default)
     tm_map(tolower)  %>%
     tm_map(removeWords, c(stopwords("english"))) %>%
     tm_map(stripWhitespace)
+=======
+                                   plot = T, # return a plot? TRUE by defult
+                                   number_of_topics = 4) # number of topics (4 by default)
+{
+  # create a corpus (type of object expected by tm) and document term matrix
+  Corpus <- Corpus(VectorSource(input_text)) # make a corpus object
+>>>>>>> 7bc3c63b652c4abd0066b24ce9cb1fb831038c8d
   DTM <- DocumentTermMatrix(Corpus) # get the count of words/document
   
   # remove any empty rows in our document term matrix (if there are any 
@@ -335,8 +350,13 @@ number_of_topics = 4) # number of topics (4 by default)
   DTM <- DTM[unique_indexes,] # get a subset of only those indexes
   
   # preform LDA & get the words/topic in a tidy text format
+<<<<<<< HEAD
   lda_dtm <- LDA(DTM, k = number_of_topics, control = list(seed = 1234))
   topics <- tidy(lda_dtm, matrix = "beta")
+=======
+  lda <- LDA(DTM, k = number_of_topics, control = list(seed = 1234))
+  topics <- tidy(lda, matrix = "beta")
+>>>>>>> 7bc3c63b652c4abd0066b24ce9cb1fb831038c8d
   
   # get the top ten terms for each topic
   top_terms <- topics  %>% # take the topics data frame and..
