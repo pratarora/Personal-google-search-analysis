@@ -336,7 +336,7 @@ number_of_topics = 4) # number of topics (4 by default)
   # preform LDA & get the words/topic in a tidy text format
   lda_dtm <- LDA(DTM, k = number_of_topics, control = list(seed = 1234))
   topics <- tidy(lda_dtm, matrix = "beta")
-
+  
   # get the top ten terms for each topic
   top_terms <- topics  %>% # take the topics data frame and..
     group_by(topic) %>% # treat each topic as a different group
