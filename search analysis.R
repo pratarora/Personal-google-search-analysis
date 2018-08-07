@@ -248,7 +248,7 @@ print(y)
 
 #to create wordcloud--------
 nameremove <- c("Current Location","Mumbai","India","Maharastra","Pune","Hampshire International Business Park")
-data_filtered <- data_timechanged %>% filter( fulldatetime >= "2008-01-01 00:00:00" & fulldatetime <= "2008-12-31 00:00:00")
+data_filtered <- data_timechanged %>% filter( fulldatetime >= "2017-01-01 00:00:00" & fulldatetime <= "2017-12-31 00:00:00")
 data_locationremoved <- filter(data_filtered, !str_detect(search_query, paste(nameremove,collapse = '|')))
 
 
@@ -265,7 +265,7 @@ tdm <- TermDocumentMatrix(corpp)
 m <- as.matrix(tdm)
 v <- sort(rowSums(m),decreasing=TRUE)
 d <- data.frame(word = names(v),freq=v)
-dd<-subset(d,freq>20)
+dd<-subset(d,freq>10)
 png(filename = "wordsin_2008.png",
     width = 10, height = 10, units = "cm", pointsize = 12,res=500,
     bg = "white",   type = c("cairo"))
@@ -340,7 +340,7 @@ number_of_topics = 4) # number of topics (4 by default)
   # get the top ten terms for each topic
   top_terms <- topics  %>% # take the topics data frame and..
     group_by(topic) %>% # treat each topic as a different group
-    top_n(10, beta) %>% # get the top 10 most informative words
+    top_n(5, beta) %>% # get the top 10 most informative words
     ungroup() %>% # ungroup
     arrange(topic, -beta) # arrange words in descending informativeness
   
@@ -352,7 +352,8 @@ number_of_topics = 4) # number of topics (4 by default)
       ggplot(aes(term, beta, fill = factor(topic))) + # plot beta by theme
       geom_col(show.legend = FALSE) + # as a bar plot
       facet_wrap(~ topic, scales = "free") + # which each topic in a seperate plot
-      labs(x = NULL, y = "Beta") + # no x label, change y label 
+      theme(plot.title = element_text(hjust = 0.5))+
+      labs(x = "Words", y = NULL, title = "Major topics searched") + # no x label, change y label 
       coord_flip() # turn bars sideways
   }else{ 
     # if the user does not request a plot
