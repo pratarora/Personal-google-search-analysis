@@ -23,6 +23,7 @@ library(wordcloud)
 library(wordcloud2)
 library(topicmodels)
 library(methods)
+library(tidytext)
 
 set.seed(2008)
 
@@ -248,7 +249,7 @@ print(y)
 
 #to create wordcloud--------
 nameremove <- c("Current Location","Mumbai","India","Maharastra","Pune","Hampshire International Business Park")
-data_filtered <- data_timechanged %>% filter( fulldatetime >= "2017-01-01 00:00:00" & fulldatetime <= "2017-12-31 00:00:00")
+data_filtered <- data_timechanged %>% filter( fulldatetime >= "2013-01-01 00:00:00" & fulldatetime <= "2013-12-31 00:00:00")
 data_locationremoved <- filter(data_filtered, !str_detect(search_query, paste(nameremove,collapse = '|')))
 
 
@@ -286,7 +287,9 @@ wordcloud2(data=dd, size = 0.5, minSize = 10, gridSize =  2,
 findAssocs(tdm, terms = "college", corlimit = 0.3)
 
 
-dd <- dd %>% head(20)
+dd <- dd %>% head(20) 
+dd %>% map_if(is.factor, as.character) %>% as_data_frame -> dd
+
 p<- ggplot(data= dd, aes(x = reorder(word, -freq), y = freq, fill= word))+
   geom_bar(stat="identity")+
     scale_fill_grey(start = 0.8, end = 0.2,guide=FALSE)+
@@ -296,25 +299,25 @@ p<- ggplot(data= dd, aes(x = reorder(word, -freq), y = freq, fill= word))+
 print(p)
 
 
-#data_filtered------
-daterange<-as.Date(c("2015-01-01",max(data_timechanged$fulldatetime)))
-
-rterms <- c("ggplot"," in r","tidyr", "stringr","dplyr", "lubridate","tidyr","tidyverse","scales","data.table","locfit")
-
-data_filtered_r <- data_timechanged %>% filter(str_detect(search_query,paste(rterms,collapse="|")))
-
-termstoremove_R <- c("rajdhani","rupee","rome","room","research","rej","reg","rail","rys","reddit","ric")
-
-data_filtered_r <- filter(data_filtered_r,!str_detect(search_query,paste(termstoremove_R,collapse="|")))
-
-aa <- ggplot(data= data_filtered_r, aes(x=Week))+
-  geom_bar(stat="count",fill="blue" ) +
-  geom_freqpoly(color="red")+
-  scale_x_date(labels = date_format("%Y"),breaks = date_breaks("1 year"),
-               limits = daterange)+
-  labs(title="Searches related to R", x="Time", y="Frequency")
-print(aa)
-
+# #data_filtered------
+# daterange<-as.Date(c("2015-01-01",max(data_timechanged$fulldatetime)))
+# 
+# rterms <- c("ggplot"," in r","tidyr", "stringr","dplyr", "lubridate","tidyr","tidyverse","scales","data.table","locfit")
+# 
+# data_filtered_r <- data_timechanged %>% filter(str_detect(search_query,paste(rterms,collapse="|")))
+# 
+# termstoremove_R <- c("rajdhani","rupee","rome","room","research","rej","reg","rail","rys","reddit","ric")
+# 
+# data_filtered_r <- filter(data_filtered_r,!str_detect(search_query,paste(termstoremove_R,collapse="|")))
+# 
+# aa <- ggplot(data= data_filtered_r, aes(x=Week))+
+#   geom_bar(stat="count",fill="blue" ) +
+#   geom_freqpoly(color="red")+
+#   scale_x_date(labels = date_format("%Y"),breaks = date_breaks("1 year"),
+#                limits = daterange)+
+#   labs(title="Searches related to R", x="Time", y="Frequency")
+# print(aa)
+# 
 
 top_terms_by_topic_LDA <- function(input_text, # should be a columm from a dataframe
 plot = T, # return a plot? TRUE by defult
@@ -326,7 +329,8 @@ number_of_topics = 4) # number of topics (4 by default)
     tm_map(removeNumbers) %>%
     tm_map(tolower)  %>%
     tm_map(removeWords, c(stopwords("english"))) %>%
-    tm_map(stripWhitespace)
+    tm_map(stripWhitespace) #%>% 
+    #tm_map(PlainTextDocument)
   DTM <- DocumentTermMatrix(Corpus) # get the count of words/document
   # remove any empty rows in our document term matrix (if there are any 
   # we'll get an error when we try to run our LDA)
@@ -334,8 +338,8 @@ number_of_topics = 4) # number of topics (4 by default)
   DTM <- DTM[unique_indexes,] # get a subset of only those indexes
   
   # preform LDA & get the words/topic in a tidy text format
-  lda_dtm <- LDA(DTM, k = number_of_topics, control = list(seed = 1234))
-  topics <- tidy(lda_dtm, matrix = "beta")
+  lda <- LDA(DTM, k = number_of_topics, control = list(seed = 2008))
+  topics <- tidytext::tidy(lda, matrix = "beta")
   
   # get the top ten terms for each topic
   top_terms <- topics  %>% # take the topics data frame and..
@@ -343,7 +347,11 @@ number_of_topics = 4) # number of topics (4 by default)
     top_n(5, beta) %>% # get the top 10 most informative words
     ungroup() %>% # ungroup
     arrange(topic, -beta) # arrange words in descending informativeness
-  
+  # library(monkeylearn)
+  # Sys.getenv("MONKEYLEARN_KEY")  
+  # top_terms_topic <- top_terms %>% summarise(text= paste(top_terms$topic, collapse=" "))
+  # extractedtopic <- monkey_extract(top_terms_topic, extractor_id = "cl_o46qggZq", unnest = TRUE)
+  # 
   # if the user asks for a plot (TRUE by default)
   if(plot == T){
     # plot the top ten terms for each topic in order
@@ -361,4 +369,21 @@ number_of_topics = 4) # number of topics (4 by default)
     return(top_terms)
   }
 }
-top_terms_by_topic_LDA(data$event.query.query_text, number_of_topics = 2)
+a <- top_terms_by_topic_LDA(data$event.query.query_text, number_of_topics = 2, plot= F)
+
+
+library(monkeylearn)
+Sys.getenv("MONKEYLEARN_KEY")  
+top_terms_topic <- a %>% group_by(topic) %>% summarise(text= paste(a$term, collapse=" "))
+output <- monkey_classify(input = dd$word[1],key = monkeylearn_key(quiet = TRUE),
+                          classifier_id = "cl_o46qggZq"
+                         )
+output <- output %>% unnest()
+output
+
+attr(output, "headers")$x.query.limit.remaining
+top_terms_topic
+dd$word[1:5]
+attr(output, "headers")$x.query.limit.remaining
+attr(output, "headers")$x.query.limit.limit
+
