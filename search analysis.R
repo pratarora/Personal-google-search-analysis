@@ -267,7 +267,7 @@ m <- as.matrix(tdm)
 v <- sort(rowSums(m),decreasing=TRUE)
 d <- data.frame(word = names(v),freq=v)
 dd<-subset(d,freq>10)
-png(filename = "wordsin_2008.png",
+png(filename = "wordsin_2008_test.png",
     width = 10, height = 10, units = "cm", pointsize = 12,res=500,
     bg = "white",   type = c("cairo"))
 par(mar=c(0.3,0.3,0.3,0.3))
@@ -275,16 +275,18 @@ wordcloud(d$word,d$freq,scale=c(4,0.5),max.words = 150,rot.per = 0.35,
           random.order = FALSE, colors=brewer.pal(8, "Dark2"))
 dev.off()
 
-figPath = "E:/Data Science/Google data Prateek January 2018/google data/Analysis/Searches/december.png"
-wordcloud2(data=dd, size = 0.5, minSize = 10, gridSize =  2,
-           fontFamily = 'Segoe UI', fontWeight = 'bold',
-           color = 'random-light', backgroundColor = "grey",
-           minRotation = -pi/4, maxRotation = pi/4, shuffle = FALSE,
-           rotateRatio = 0.6, shape = NULL, ellipticity = 1,
-           widgetsize = NULL, figPath = NULL)
+# 
+# figPath = "E:/Data Science/Google data Prateek January 2018/google data/Analysis/Searches/december.png"
+# wordcloud2(data=dd, size = 0.5, minSize = 10, gridSize =  2,
+#            fontFamily = 'Segoe UI', fontWeight = 'bold',
+#            color = 'random-light', backgroundColor = "grey",
+#            minRotation = -pi/4, maxRotation = pi/4, shuffle = FALSE,
+#            rotateRatio = 0.6, shape = NULL, ellipticity = 1,
+#            widgetsize = NULL, figPath = NULL)
 
 #to find association between words (which word is usually used with which word)
-findAssocs(tdm, terms = "college", corlimit = 0.3)
+
+
 
 
 dd <- dd %>% head(20) 
@@ -298,6 +300,9 @@ p<- ggplot(data= dd, aes(x = reorder(word, -freq), y = freq, fill= word))+
   labs(title="Most frequently searched words", x="Words", y="Frequency")
 print(p)
 
+
+assoc_words <- findAssocs(tdm, terms = dd$word[1], corlimit = 0.3)
+assoc_words
 
 # #data_filtered------
 # daterange<-as.Date(c("2015-01-01",max(data_timechanged$fulldatetime)))
@@ -372,18 +377,12 @@ number_of_topics = 4) # number of topics (4 by default)
 a <- top_terms_by_topic_LDA(data$event.query.query_text, number_of_topics = 2, plot= F)
 
 
-library(monkeylearn)
-Sys.getenv("MONKEYLEARN_KEY")  
-top_terms_topic <- a %>% group_by(topic) %>% summarise(text= paste(a$term, collapse=" "))
-output <- monkey_classify(input = dd$word[1],key = monkeylearn_key(quiet = TRUE),
-                          classifier_id = "cl_o46qggZq"
-                         )
-output <- output %>% unnest()
-output
-
-attr(output, "headers")$x.query.limit.remaining
-top_terms_topic
-dd$word[1:5]
-attr(output, "headers")$x.query.limit.remaining
-attr(output, "headers")$x.query.limit.limit
-test
+# library(monkeylearn)
+# Sys.getenv("MONKEYLEARN_KEY")
+# top_terms_topic <- a %>% group_by(topic) %>% summarise(text= paste(a$term, collapse=" "))
+# output <- monkey_classify(input = dd$word[1],key = monkeylearn_key(quiet = TRUE),
+# classifier_id = "cl_o46qggZq"
+# )
+# output <- output %>% unnest()
+# output
+# 

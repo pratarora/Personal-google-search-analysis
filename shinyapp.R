@@ -1,12 +1,36 @@
 # 04-well.R
 
 library(shiny)
+library(jsonlite)
 library(ggplot2)
+library(tidyr)
+library(dplyr)
+library(broom)
+library(tibble)
+library(purrr)
+library(readr)
+library(httr)
+library(lubridate)
+library(scales)
+library(stringr)
+library(SnowballC)
+library(tm)
+library(ColorPalette)
+library(RColorBrewer)
+library(wordcloud)
+library(wordcloud2)
+library(topicmodels)
+library(methods)
+library(tidytext)
+
 
 ui <- fluidPage(
   sidebarLayout(
     sidebarPanel(
-      fileInput(inputId="file_input","Upload .Json Google takeaway files"),
+      fileInput(inputId="file_input","Upload .Json Google takeaway files", multiple = TRUE, accept = ".json"),
+      downloadButton(outputId = "downloadData", label = "Download the csv"),
+      
+      
       
       dateRangeInput(inputId= "date_range", "Choose dates for analysis"),
       
@@ -32,6 +56,38 @@ ui <- fluidPage(
 )
 
 server <- function(input, output) {
+  # JSON file input------------
+  getData <- reactive({
+  inFile <- input$file_input
+  if (is.null(inFile)){
+    return(NULL)
+  }else {
+    
+  num_files <- nrow(inFile)
+  
+  pages <- list()
+  for (i in 1:num_files) {
+    data <-
+      fromJSON(input$file_input[[i, 'datapath']], simplifyMatrix = TRUE, flatten = TRUE) %>% #read JSON file
+      as.data.frame() %>% #convert it into data frame
+      unnest(event.query.id) # unnest the filed to get time stamp
+    pages[[i]] <- data #append pages list to add new data
+    
+  }
+  
+  #combine all files
+  data <- rbind_pages(pages)
+  }})
+  # renderTable(data)
+  
+  
+  
+  
+  
+  
+  
+  
+  
   # output$hist <- renderPlot({
     # norm_data <- rnorm(input$num)
     
@@ -44,6 +100,20 @@ server <- function(input, output) {
     output$hist <- renderPlot({
       print(plotInput())
     })
+    #JSON File csv---------------------------------- 
+    output$contents <- renderTable( 
+      getData() 
+    )
+    output$downloadData <- downloadHandler(
+      filename = function() { 
+        paste("data-", Sys.Date(), ".csv", sep="")
+      },
+      content = function(file) { 
+        write.csv(getData(), file, row.names=FALSE)   
+      })
+
+    
+    
     
     output$download <- downloadHandler(
       filename <- function(){ paste('Boxplot.svg') },
@@ -53,8 +123,8 @@ server <- function(input, output) {
         print(plotInput())
         
         dev.off()
-      },
-      contentType = 'application/pdf'
+      }
+      # contentType = 'application/pdf'
     )
     
     # 
