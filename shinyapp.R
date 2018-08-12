@@ -22,7 +22,7 @@ library(wordcloud2)
 library(topicmodels)
 library(methods)
 library(tidytext)
-
+options(expressions=10000)
 
 ui <- fluidPage(
   sidebarLayout(
@@ -77,17 +77,40 @@ server <- function(input, output) {
   
   #combine all files
   data <- rbind_pages(pages)
-  }})
+  }
   # renderTable(data)
   
   
+  #to make main data frame-----------------------
+  #convert epoch time to date and time
+  
+    data_timechanged <- data %>%
+    dplyr::rename('search_query' = 'event.query.query_text') %>%
+    mutate(
+      timestamp_msec = as.numeric(timestamp_usec) / 1000000,
+      fulldatetime = as_datetime(timestamp_msec, tz = "Asia/Calcutta"),
+      time = format(fulldatetime, "%T", tz = "Asia/Calcutta"),
+      Hour = as_datetime(cut(fulldatetime, breaks = "hour")),
+      Day =  as.Date(cut(fulldatetime, breaks = "day")),
+      Weekday = weekdays(as.Date(fulldatetime)),
+      Week =  as.Date(cut(fulldatetime, breaks = "week")),
+      Month =  as.Date(cut(fulldatetime, breaks = "month")),
+      Quarter =  as.Date(cut(fulldatetime, breaks = "quarter")),
+      Year =  as.Date(cut(fulldatetime, breaks = "year")),
+      allmonths = format(fulldatetime, "%m", tz = "Asia/Calcutta"),
+      alldates = format(fulldatetime, "%d", tz = "Asia/Calcutta"),
+      allhour = format(fulldatetime, "%H", tz = "Asia/Calcutta")
+    ) %>% select(-timestamp_usec,-timestamp_msec) 
+  
+  data_timechanged$Weekday <- factor(data_timechanged$Weekday, levels= c("Sunday", "Monday",
+                                                                         "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"))
+  data_timechanged
+  })
   
   
   
   
-  
-  
-  
+  #trial histogram------------------
   # output$hist <- renderPlot({
     # norm_data <- rnorm(input$num)
     
@@ -101,15 +124,15 @@ server <- function(input, output) {
       print(plotInput())
     })
     #JSON File csv---------------------------------- 
-    output$contents <- renderTable( 
-      getData() 
+    output$contents <- renderTable(
+      data_timechanged()
     )
     output$downloadData <- downloadHandler(
-      filename = function() { 
-        paste("data-", Sys.Date(), ".csv", sep="")
+      filename = function() {
+        paste("data-", Sys.Date(),Sys.time(), ".csv", sep="")
       },
-      content = function(file) { 
-        write.csv(getData(), file, row.names=FALSE)   
+      content = function(file) {
+        write.csv(getData(), file, row.names=FALSE)
       })
 
     
