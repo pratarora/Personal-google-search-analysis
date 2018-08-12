@@ -105,33 +105,68 @@ server <- function(input, output) {
   
   data_timechanged$Weekday <- factor(data_timechanged$Weekday, levels= c("Sunday", "Monday",
                                                                          "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"))
-  #allcounts and merging in main dataframe----
-  yearlystats <- data_timechanged %>%  group_by(Year) %>% summarise(yearlycount= n())
-  data_timechanged <-  merge(data_timechanged,yearlystats)
  
-  quarterlystats <- data_timechanged %>%  group_by(Quarter) %>% summarise(quarterlycount= n())
-  data_timechanged <-  merge(data_timechanged,quarterlystats)
- 
-  monthlystats <- data_timechanged %>%  group_by(Month) %>% summarise(monthlycount= n())
-  data_timechanged <-  merge(data_timechanged,monthlystats)
-  
-  weeklystats <- data_timechanged %>%  group_by(Week) %>% summarise(weeklycount= n())
-  data_timechanged <-  merge(data_timechanged,weeklystats)
-  
-  weekdaystats <- data_timechanged %>%  group_by(Weekday) %>% summarise(weekdaycount= n())
-  data_timechanged <-  merge(data_timechanged,weekdaystats)
-  
-  dailystats <- data_timechanged %>%  group_by(Day) %>% summarise(dailycount= n())
-  data_timechanged <-  merge(data_timechanged,dailystats)
-  
-  hourlystats <- data_timechanged %>%  group_by(Hour) %>% summarise(hourlycount= n()) 
-  data_timechanged <-  merge(data_timechanged,hourlystats)
-  
-    
-    
-    
   data_timechanged
+  })
+  
+ 
+  
+  
+  output$date_range <- renderUI({
+    # dates <- as.Date(myData()$V2, format = "%d %b %y")
+    minval <- min(getData()$Day)
+    maxval <- max(getData()$Day)
+    dateRangeInput('date_range', label = "Choose time-frame for analysis:",
+                   start = minval, end = maxval,
+                   min = minval, max = maxval,
+                   format = "dd-mm-yyyy",
+                   weekstart = 1
+    )
+  })
+  
+  
+  
+  range_selected_data <- reactive({
+    data2 <- getData() %>%
+    filter(Day >= min(input$date_range) & Day <= max(input$date_range))
+    
+    #allcounts and merging in main dataframe----
+    yearlystats <- data2 %>%  group_by(Year) %>% summarise(yearlycount= n())
+    data2 <-  merge(data2,yearlystats)
+    
+    quarterlystats <- data2 %>%  group_by(Quarter) %>% summarise(quarterlycount= n())
+    data2 <-  merge(data2,quarterlystats)
+    
+    monthlystats <- data2 %>%  group_by(Month) %>% summarise(monthlycount= n())
+    data2 <-  merge(data2,monthlystats)
+    
+    weeklystats <- data2 %>%  group_by(Week) %>% summarise(weeklycount= n())
+    data2 <-  merge(data2,weeklystats)
+    
+    weekdaystats <- data2 %>%  group_by(Weekday) %>% summarise(weekdaycount= n())
+    data2 <-  merge(data2,weekdaystats)
+    
+    dailystats <- data2 %>%  group_by(Day) %>% summarise(dailycount= n())
+    data2 <-  merge(data2,dailystats)
+    
+    hourlystats <- data2 %>%  group_by(Hour) %>% summarise(hourlycount= n()) 
+    data2 <-  merge(data2,hourlystats)
+    
+    
     })
+  
+  #JSON File csv---------------------------------- 
+  output$contents <- renderTable(
+    range_selected_data()
+  )
+  output$downloadData <- downloadHandler(
+    filename = function() {
+      paste("data-", Sys.Date(),Sys.time(), ".csv", sep="")
+    },
+    content = function(file) {
+      write.csv(range_selected_data(), file, row.names=FALSE)
+    })
+  
   
   
   
@@ -149,17 +184,7 @@ server <- function(input, output) {
     output$hist <- renderPlot({
       print(plotInput())
     })
-    #JSON File csv---------------------------------- 
-    output$contents <- renderTable(
-      data_timechanged()
-    )
-    output$downloadData <- downloadHandler(
-      filename = function() {
-        paste("data-", Sys.Date(),Sys.time(), ".csv", sep="")
-      },
-      content = function(file) {
-        write.csv(getData(), file, row.names=FALSE)
-      })
+    
 
     
     
