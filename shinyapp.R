@@ -104,6 +104,31 @@ server <- function(input, output) {
   
   data_timechanged$Weekday <- factor(data_timechanged$Weekday, levels= c("Sunday", "Monday",
                                                                          "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"))
+  #allcounts and merging in main dataframe----
+  yearlystats <- data_timechanged %>%  group_by(Year) %>% summarise(yearlycount= n())
+  data_timechanged <-  merge(data_timechanged,yearlystats)
+  
+  quarterlystats <- data_timechanged %>%  group_by(Quarter) %>% summarise(quarterlycount= n())
+  data_timechanged <-  merge(data_timechanged,quarterlystats)
+  
+  monthlystats <- data_timechanged %>%  group_by(Month) %>% summarise(monthlycount= n())
+  data_timechanged <-  merge(data_timechanged,monthlystats)
+  
+  weeklystats <- data_timechanged %>%  group_by(Week) %>% summarise(weeklycount= n())
+  data_timechanged <-  merge(data_timechanged,weeklystats)
+  
+  weekdaystats <- data_timechanged %>%  group_by(Weekday) %>% summarise(weekdaycount= n())
+  data_timechanged <-  merge(data_timechanged,weekdaystats)
+  
+  dailystats <- data_timechanged %>%  group_by(Day) %>% summarise(dailycount= n())
+  data_timechanged <-  merge(data_timechanged,dailystats)
+  
+  hourlystats <- data_timechanged %>%  group_by(Hour) %>% summarise(hourlycount= n()) 
+  data_timechanged <-  merge(data_timechanged,hourlystats)
+  
+  
+  
+  
   data_timechanged
   })
   
