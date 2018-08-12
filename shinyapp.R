@@ -23,7 +23,7 @@ library(topicmodels)
 library(methods)
 library(tidytext)
 options(expressions=10000)
-
+#ui------------------
 ui <- fluidPage(
   sidebarLayout(
     sidebarPanel(
@@ -31,10 +31,10 @@ ui <- fluidPage(
       downloadButton(outputId = "downloadData", label = "Download the csv"),
       
       
+      uiOutput("date_range"),
+     # dateRangeInput(inputId= "date_range", "Choose dates for analysis", format= "dd-mm-yyyy"),
       
-      dateRangeInput(inputId= "date_range", "Choose dates for analysis"),
-      
-      radioButtons(inputId= "analysis_timeframe", label = "How would you like your analysis to be performed?", 
+      radioButtons(inputId= "analysis_type", label = "How would you like your analysis to be performed?", 
                    c("Yearly" = "yearly",
                      "Quarterly" = "quarterly",
                      "Monthly" = "monthly",
@@ -55,6 +55,7 @@ ui <- fluidPage(
   )
 )
 
+#server--------------
 server <- function(input, output) {
   # JSON file input------------
   getData <- reactive({
@@ -107,10 +108,10 @@ server <- function(input, output) {
   #allcounts and merging in main dataframe----
   yearlystats <- data_timechanged %>%  group_by(Year) %>% summarise(yearlycount= n())
   data_timechanged <-  merge(data_timechanged,yearlystats)
-  
+ 
   quarterlystats <- data_timechanged %>%  group_by(Quarter) %>% summarise(quarterlycount= n())
   data_timechanged <-  merge(data_timechanged,quarterlystats)
-  
+ 
   monthlystats <- data_timechanged %>%  group_by(Month) %>% summarise(monthlycount= n())
   data_timechanged <-  merge(data_timechanged,monthlystats)
   
@@ -126,11 +127,11 @@ server <- function(input, output) {
   hourlystats <- data_timechanged %>%  group_by(Hour) %>% summarise(hourlycount= n()) 
   data_timechanged <-  merge(data_timechanged,hourlystats)
   
-  
-  
-  
+    
+    
+    
   data_timechanged
-  })
+    })
   
   
   
