@@ -24,6 +24,7 @@ library(wordcloud2)
 library(topicmodels)
 library(methods)
 library(tidytext)
+library(zoo)
 
 set.seed(2008)
 

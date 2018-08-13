@@ -21,6 +21,7 @@ library(wordcloud2)
 library(topicmodels)
 library(methods)
 library(tidytext)
+library(zoo)
 options(expressions = 10000)
 
 #ui------------------
@@ -51,23 +52,13 @@ ui <- fluidPage(sidebarLayout(
         "Quarterly" = "quarterly",
         "Monthly" = "monthly",
         "Weekly" = "weekly",
-        "Daily" = "daily"
-      )
-    ),#switch command?
-    
-    #trial slider
-    sliderInput(
-      inputId = "num",
-      label = "Choose a number",
-      value = 50,
-      min = 1,
-      max = 100
-    ),
-    textInput(
-      inputId = "title",
-      label = "Write a title",
-      value = "Histogram of Random Normal Values"
-    )
+        "Daily" = "daily",
+        "According to days of the week" = "weekdays",
+        "According to months in a year" = "month_pooled",
+        "According to dates of the month" = "dates_pooled"
+      ),selected = "monthly"
+    )#switch command?
+
   ),
   
   #main panel UI------------
@@ -123,7 +114,7 @@ server <- function(input, output) {
         Weekday = weekdays(as.Date(fulldatetime)),
         Week =  as.Date(cut(fulldatetime, breaks = "week")),
         Month =  as.Date(cut(fulldatetime, breaks = "month")),
-        Quarter =  as.Date(cut(fulldatetime, breaks = "quarter")),
+        Quarter =  as.Date(as.yearqtr(fulldatetime,format = "%Y-%m-%d")),
         Year =  as.Date(cut(fulldatetime, breaks = "year")),
         allmonths = format(fulldatetime, "%m", tz = "Asia/Calcutta"),
         alldates = format(fulldatetime, "%d", tz = "Asia/Calcutta"),
@@ -166,7 +157,7 @@ server <- function(input, output) {
     )
   })
   
-  # select and count entries based on input date range--------------
+# select and count entries based on input date range--------------
   
   #select entries based on input date range
   range_selected_data <- reactive({
@@ -233,14 +224,14 @@ server <- function(input, output) {
             colour = "dark blue",
             alpha = 0.8
           ) + # or "line"
-          stat_summary(
-            fun.y = length,
-            # adds up all observations for the month
-            geom = "line",
-            colour = "red",
-            alpha = 1,
-            size = 0.8
-          ) + # or "line"
+          # stat_summary(
+          #   fun.y = length,
+          #   # adds up all observations for the month
+          #   geom = "line",
+          #   colour = "red",
+          #   alpha = 1,
+          #   size = 0.8
+          # ) + # or "line"
           geom_smooth() +
           scale_x_date(labels = date_format("%Y"),
                        date_breaks = "1 year") +
@@ -251,7 +242,7 @@ server <- function(input, output) {
       }
       if (input$analysis_type == "quarterly") {
         quarterlyplot <- ggplot(data = range_selected_data(),
-                                aes(as.Date(Quarter), quarterlycount)) +
+                                aes(as.Date(as.yearqtr(fulldatetime),format = "%Y-%m-%d"), quarterlycount)) +
           stat_summary(
             fun.y = length,
             # adds up all observations for the month
@@ -259,18 +250,16 @@ server <- function(input, output) {
             colour = "dark blue",
             alpha = 0.8
           ) + # or "line"
-          stat_summary(
-            fun.y = length,
-            # adds up all observations for the month
-            geom = "line",
-            colour = "red",
-            alpha = 1,
-            size = 0.8
-          ) + # or "line"
+          # stat_summary(
+          #   fun.y = length,
+          #   # adds up all observations for the month
+          #   geom = "line",
+          #   colour = "red",
+          #   alpha = 1,
+          #   size = 0.8
+          # ) + # or "line"
           # geom_point(colour="red", alpha= 0.5, shape= 21)+
           geom_smooth() +
-          scale_x_date(labels = date_format("%b-'%y"),
-                       date_breaks = "1 year") +
           labs(title = "Quarterly Searches", x = "Time", y = "Count") +
           theme(axis.text.x = element_text(angle = 45, hjust = 1),
                 plot.title = element_text(hjust = 0.5))
@@ -281,13 +270,13 @@ server <- function(input, output) {
                               aes(as.Date(Month), monthlycount)) +
           stat_summary(fun.y = length, # adds up all observations for the month
                        geom = "bar", colour= "dark blue", alpha= 0.8) + # or "line"
-          stat_summary(fun.y = length, # adds up all observations for the month
-                       geom = "line", colour= "red", alpha= 1, size= 0.8) + # or "line"
+          # stat_summary(fun.y = length, # adds up all observations for the month
+          #              geom = "line", colour= "red", alpha= 1, size= 0.8) + # or "line"
           # geom_point(colour="red", alpha= 0.5, shape= 21)+
           geom_smooth()+
           scale_x_date(
             labels = date_format("%b-'%y"),
-            date_breaks = "1 year")+
+            date_breaks = "1 month")+
           labs(title= "Monthly Searches",x= "Time", y= "Count")+
           theme(axis.text.x = element_text(angle=45, hjust=1),
                 plot.title = element_text(hjust = 0.5))
@@ -299,13 +288,13 @@ server <- function(input, output) {
                              aes(as.Date(Week), weeklycount)) +
           stat_summary(fun.y = length, # adds up all observations for the month
                        geom = "bar", colour= "dark blue", alpha= 0.5) + # or "line"
-          stat_summary(fun.y = length, # adds up all observations for the month
-                       geom = "line", colour= "red", alpha= 0.8) + # or "line"
+          # stat_summary(fun.y = length, # adds up all observations for the month
+          #              geom = "line", colour= "red", alpha= 0.8) + # or "line"
           geom_smooth()+
           # geom_point(colour="red", alpha= 0.5, shape= 21)+
           scale_x_date(
             labels = date_format("%d-%b-'%y"),
-            date_breaks = "1 year")+
+            date_breaks = "2 week")+
           labs(title= "Weekly Searches",x= "Time", y= "Count")+
           theme(axis.text.x = element_text(angle=45, hjust=1),
                 plot.title = element_text(hjust = 0.5))
@@ -317,18 +306,58 @@ server <- function(input, output) {
                             aes(as.Date(Hour), dailycount)) +
           stat_summary(fun.y = length, # adds up all observations for the month
                        geom = "bar", colour= "dark blue", alpha= 0.5) + # or "line"
-          stat_summary(fun.y = length, # adds up all observations for the month
-                       geom = "line", colour= "red", alpha= 0.8) + # or "line"
+          # stat_summary(fun.y = length, # adds up all observations for the month
+          #              geom = "line", colour= "red", alpha= 0.8) + # or "line"
           geom_smooth()+
           # geom_point(colour="red", alpha= 0.5, shape= 21)+
           scale_x_date(
             labels = date_format("%d-%b-'%y"),
-            date_breaks = "1 year")+
+            date_breaks = "1 month")+
           labs(title= "Daily Searches",x= "Time", y= "Count")+
           theme(axis.text.x = element_text(angle=45, hjust=1),
                 plot.title = element_text(hjust = 0.5))
         return(dailyplot)
       }
+      
+      if(input$analysis_type== "weekdays"){
+        weekdayplot <- ggplot(data=data_timechanged,aes(x= sort(Weekday), weekdaycount))+
+          stat_summary(fun.y = length, # adds up all observations for the month
+                       geom = "bar", colour= "dark blue", alpha= 0.8) + # or "line"
+          # stat_summary(fun.y = length, # adds up all observations for the month
+          #              geom = "line", colour= "red", alpha= 1, size= 0.8) + # or "line"
+          # geom_point(colour="red", alpha= 0.5, shape= 21)+
+          geom_smooth()+
+          labs(title= "Searches on various days of the Week",x= "Day", y= "Count")+
+          theme(axis.text.x = element_text(angle=45, hjust=1),
+                plot.title = element_text(hjust = 0.5))
+        return(weekdayplot)
+      }
+      
+      if(input$analysis_type== "month_pooled"){
+        monthpooledplot <- ggplot(data_timechanged, aes(x=allmonths,y= monthlycount))+
+          stat_summary(fun.y = length, # adds up all observations for the month
+                       geom = "bar", colour= "dark blue", alpha= 0.7)+
+          # stat_summary(fun.y = length, # adds up all observations for the month
+          #              geom = "line", colour= "red", alpha= 0.8, size= 1) +
+          labs(title= "Searches on various Months of the Year",x= "Months", y= "Count")+
+          scale_x_discrete(labels= month.name)+
+          theme(axis.text.x = element_text(angle=45, hjust=1),
+                plot.title = element_text(hjust = 0.5))
+        return(monthpooledplot)
+      }
+      
+      if (input$analysis_type == "dates_pooled"){
+        dates_pooled_plot <- ggplot(data_timechanged, aes(x=alldates,y= dailycount))+
+          stat_summary(fun.y = length, # adds up all observations for the month
+                       geom = "bar", colour= "dark blue", alpha= 0.7)+
+          # stat_summary(fun.y = length, # adds up all observations for the month
+          #              geom = "line", colour= "red", alpha= 0.8, size= 1) +
+          labs(title= "Searches on various Dates in a Month",x= "Months", y= "Count")+
+          scale_x_discrete(breaks = c(seq(0,30,10)))+
+          theme(axis.text.x = element_text(angle=45, hjust=1),
+                plot.title = element_text(hjust = 0.5))
+      return(dates_pooled_plot)
+        }
   })
   
   output$graph <- renderPlot({print(graph_ggplot())})
@@ -336,12 +365,13 @@ server <- function(input, output) {
   #download graph--------------
   output$download <- downloadHandler(filename =
                                        function() {
-                                         paste('Boxplot.pdf')
+                                         paste(input$analysis_type,'.pdf', sep = "")
                                        },
                                      content = function(file) {
                                        pdf(file)
                                        print(graph_ggplot())
                                        dev.off()
+                                       contentType = 'application/pdf'
                                      })
   
 }
