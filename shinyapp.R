@@ -42,22 +42,45 @@ ui <- fluidPage(sidebarLayout(
     
     #input date range for analysis based on input files
     uiOutput("date_range"),
-    
+    tags$hr(),
+    tabsetPanel(
+      type = "pills",
+      #search count analysis ui----------------
+      tabPanel("Search Count Analysis",
+               radioButtons(
+                 inputId = "analysis_type",
+                 label = "How would you like your analysis to be performed?",
+                 c(
+                   "Yearly" = "yearly",
+                   "Quarterly" = "quarterly",
+                   "Monthly" = "monthly",
+                   "Weekly" = "weekly",
+                   "Daily" = "daily",
+                   "According to days of the week" = "weekdays",
+                   "According to months in a year" = "month_pooled",
+                   "According to dates of the month" = "dates_pooled"
+                 ),selected = "monthly"
+               )),
+      #word analysis ui-----------------
+      tabPanel("Word Analysis",
+               textInput(inputId = "filterwordsinput",
+                         label = "Words to remove from the analysis (Seprate words by a space)",
+                         value = NULL
+                         ),
+               radioButtons(
+                 inputId = "word_analysis_type",
+                 label = "How would you like your analysis to be performed?",
+                 c(
+                   "Word Cloud" = "wordcloud",
+                   "Word Frequency chart" = "word_freq",
+                   "Word Associations" = "word_assoc",
+                   "Word Topic" = "word_topic"
+                 ),selected = "wordcloud"
+               )
+               )
+      )
     #select what type of analysis is to be done
-    radioButtons(
-      inputId = "analysis_type",
-      label = "How would you like your analysis to be performed?",
-      c(
-        "Yearly" = "yearly",
-        "Quarterly" = "quarterly",
-        "Monthly" = "monthly",
-        "Weekly" = "weekly",
-        "Daily" = "daily",
-        "According to days of the week" = "weekdays",
-        "According to months in a year" = "month_pooled",
-        "According to dates of the month" = "dates_pooled"
-      ),selected = "monthly"
-    )#switch command?
+  #switch command?
 
   ),
   
@@ -75,7 +98,7 @@ ui <- fluidPage(sidebarLayout(
 
 #server--------------
 server <- function(input, output) {
-  # JSON file input------------
+# JSON file input------------
   getData <- reactive({
     inFile <- input$file_input
     if (is.null(inFile)) {
@@ -203,12 +226,13 @@ server <- function(input, output) {
       paste("data-", Sys.Date(), Sys.time(), ".csv", sep = "")
     },
     content = function(file) {
-      write.csv(range_selected_data(), file, row.names = FALSE)
+      write.csv(filtered_data(), file, row.names = FALSE)
     }
   )
   
   
-  # graphs of different kind-------------
+  #Search Count Analysis-------------
+  # graphs of different kind
   #graph for year
   
   
@@ -362,6 +386,23 @@ server <- function(input, output) {
   
   output$graph <- renderPlot({print(graph_ggplot())})
   
+  
+  # Word Analysis--------------------
+  filter_words <- reactive({  
+    words <- strsplit(input$filterwordsinput, " ")
+    return(words[[1]])
+    })
+  search_corpus <- reactive({
+    corpp <- Corpus(VectorSource(range_selected_data()$search_query)) %>%
+      tm_map(removePunctuation) %>%
+      tm_map(removeNumbers) %>%
+      tm_map(tolower)  %>%
+      tm_map(removeWords, c(stopwords("english"),filter_words())) %>%
+      tm_map(stripWhitespace)
+    })
+  
+  
+  # range_selected_data()
   #download graph--------------
   output$download <- downloadHandler(filename =
                                        function() {
