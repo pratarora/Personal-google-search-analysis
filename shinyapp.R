@@ -50,6 +50,7 @@ ui <- fluidPage(sidebarLayout(
         "Yearly" = "yearly",
         "Quarterly" = "quarterly",
         "Monthly" = "monthly",
+        "Weekly" = "weekly",
         "Daily" = "daily"
       )
     ),#switch command?
@@ -71,7 +72,9 @@ ui <- fluidPage(sidebarLayout(
   
   #main panel UI------------
   mainPanel(
-    plotOutput("hist"),
+    # plotOutput("hist"),
+    
+    plotOutput("graph"),
     
     downloadButton(
       outputId = "download",
@@ -214,35 +217,131 @@ server <- function(input, output) {
   )
   
   
+  # graphs of different kind-------------
+  #graph for year
   
   
-  
-  #trial histogram------------------
-  plotInput <- reactive({
-    df <- data.frame(x = rnorm(input$num))
-    p <- ggplot(df, aes(x = x)) +
-      geom_histogram()
+    graph_ggplot <- reactive({
+      
+      if (input$analysis_type == "yearly") {
+        yearlyplot <- ggplot(data = range_selected_data(),
+                             aes(as.Date(Year), yearlycount)) +
+          stat_summary(
+            fun.y = length,
+            # adds up all observations for the month
+            geom = "bar",
+            colour = "dark blue",
+            alpha = 0.8
+          ) + # or "line"
+          stat_summary(
+            fun.y = length,
+            # adds up all observations for the month
+            geom = "line",
+            colour = "red",
+            alpha = 1,
+            size = 0.8
+          ) + # or "line"
+          geom_smooth() +
+          scale_x_date(labels = date_format("%Y"),
+                       date_breaks = "1 year") +
+          labs(title = "Yearly Searches", x = "Time", y = "Count") +
+          theme(axis.text.x = element_text(angle = 45, hjust = 1),
+                plot.title = element_text(hjust = 0.5))
+        return(yearlyplot)
+      }
+      if (input$analysis_type == "quarterly") {
+        quarterlyplot <- ggplot(data = range_selected_data(),
+                                aes(as.Date(Quarter), quarterlycount)) +
+          stat_summary(
+            fun.y = length,
+            # adds up all observations for the month
+            geom = "bar",
+            colour = "dark blue",
+            alpha = 0.8
+          ) + # or "line"
+          stat_summary(
+            fun.y = length,
+            # adds up all observations for the month
+            geom = "line",
+            colour = "red",
+            alpha = 1,
+            size = 0.8
+          ) + # or "line"
+          # geom_point(colour="red", alpha= 0.5, shape= 21)+
+          geom_smooth() +
+          scale_x_date(labels = date_format("%b-'%y"),
+                       date_breaks = "1 year") +
+          labs(title = "Quarterly Searches", x = "Time", y = "Count") +
+          theme(axis.text.x = element_text(angle = 45, hjust = 1),
+                plot.title = element_text(hjust = 0.5))
+        return(quarterlyplot)
+      }
+      if (input$analysis_type == "monthly") {
+        monthlyplot <- ggplot(data = range_selected_data(),
+                              aes(as.Date(Month), monthlycount)) +
+          stat_summary(fun.y = length, # adds up all observations for the month
+                       geom = "bar", colour= "dark blue", alpha= 0.8) + # or "line"
+          stat_summary(fun.y = length, # adds up all observations for the month
+                       geom = "line", colour= "red", alpha= 1, size= 0.8) + # or "line"
+          # geom_point(colour="red", alpha= 0.5, shape= 21)+
+          geom_smooth()+
+          scale_x_date(
+            labels = date_format("%b-'%y"),
+            date_breaks = "1 year")+
+          labs(title= "Monthly Searches",x= "Time", y= "Count")+
+          theme(axis.text.x = element_text(angle=45, hjust=1),
+                plot.title = element_text(hjust = 0.5))
+        return(monthlyplot)
+      }
+      
+      if(input$analysis_type== "weekly") {
+        weeklyplot <- ggplot(data = range_selected_data(),
+                             aes(as.Date(Week), weeklycount)) +
+          stat_summary(fun.y = length, # adds up all observations for the month
+                       geom = "bar", colour= "dark blue", alpha= 0.5) + # or "line"
+          stat_summary(fun.y = length, # adds up all observations for the month
+                       geom = "line", colour= "red", alpha= 0.8) + # or "line"
+          geom_smooth()+
+          # geom_point(colour="red", alpha= 0.5, shape= 21)+
+          scale_x_date(
+            labels = date_format("%d-%b-'%y"),
+            date_breaks = "1 year")+
+          labs(title= "Weekly Searches",x= "Time", y= "Count")+
+          theme(axis.text.x = element_text(angle=45, hjust=1),
+                plot.title = element_text(hjust = 0.5))
+        return(weeklyplot)
+      }
+      
+      if(input$analysis_type== "daily") {
+        dailyplot <- ggplot(data = range_selected_data(),
+                            aes(as.Date(Hour), dailycount)) +
+          stat_summary(fun.y = length, # adds up all observations for the month
+                       geom = "bar", colour= "dark blue", alpha= 0.5) + # or "line"
+          stat_summary(fun.y = length, # adds up all observations for the month
+                       geom = "line", colour= "red", alpha= 0.8) + # or "line"
+          geom_smooth()+
+          # geom_point(colour="red", alpha= 0.5, shape= 21)+
+          scale_x_date(
+            labels = date_format("%d-%b-'%y"),
+            date_breaks = "1 year")+
+          labs(title= "Daily Searches",x= "Time", y= "Count")+
+          theme(axis.text.x = element_text(angle=45, hjust=1),
+                plot.title = element_text(hjust = 0.5))
+        return(dailyplot)
+      }
   })
   
-  output$hist <- renderPlot({
-    print(plotInput())
-  })
-  
-  
-  
+  output$graph <- renderPlot({print(graph_ggplot())})
   
   #download graph--------------
-  output$download <- downloadHandler(filename <-
+  output$download <- downloadHandler(filename =
                                        function() {
                                          paste('Boxplot.pdf')
                                        },
-                                     content <- function(file) {
+                                     content = function(file) {
                                        pdf(file)
-                                       
-                                       print(plotInput())
-                                       
+                                       print(graph_ggplot())
                                        dev.off()
-                                       contentType = 'application/pdf'
                                      })
   
 }
