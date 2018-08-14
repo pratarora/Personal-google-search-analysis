@@ -70,16 +70,16 @@ ui <- fluidPage(sidebarLayout(
                          label = "Words to remove from the analysis (Seprate words by a space)",
                          value = NULL
                          ),
+               
                radioButtons(
                  inputId = "word_analysis_type",
                  label = "How would you like your analysis to be performed?",
                  c(
                    "Word Cloud" = "wordcloud",
-                   "Word Frequency chart" = "word_freq",
-                   "Word Associations" = "word_assoc",
-                   "Word Topic" = "word_topic"
+                   "Word Frequency chart" = "word_freq"
                  ),selected = "wordcloud"
-               )
+               ),
+               checkboxInput(inputId = "word_assoc", label = "See word associations" , FALSE)
                )
       )
     #select what type of analysis is to be done
@@ -91,17 +91,27 @@ ui <- fluidPage(sidebarLayout(
   mainPanel(
     
     conditionalPanel(condition="input.sidetabselection==1",
-    plotOutput("graph"),
+    plotOutput("graph", width = 700, height = 700),
     downloadButton(
       outputId = "download_searchcount",
       label = "Download the plot")),
     conditionalPanel(condition="input.sidetabselection==2",
-    plotOutput("graph_2"),
-    downloadButton("wordcloud_plot","Download the plot"))
+   
+    conditionalPanel(condition ="input.word_analysis_type==wordcloud",
+                     plotOutput("wordcloudout", width = 500, height = 500)),
+    
+    
+    conditionalPanel(condition ="input.word_assoc==True",
+                     tableOutput("wordassocout")),
+    
+    
+    conditionalPanel(condition ="input.word_analysis_type==word_freq",
+                     plotOutput("wordfreqout", width = 500, height = 500)
+                     )
     
     
     )
-))
+)))
 
 #server--------------
 server <- function(input, output) {
@@ -403,7 +413,7 @@ server <- function(input, output) {
                                                    dev.off()
                                                    contentType = 'application/pdf'
                                                  })
-  
+
   
   # Word Analysis--------------------
   filter_words <- reactive({  
@@ -412,45 +422,83 @@ server <- function(input, output) {
     })
   search_corpus <- reactive({
     corpp <- Corpus(VectorSource(range_selected_data()$search_query)) %>%
-      tm_map(removePunctuation) %>%
-      tm_map(removeNumbers) %>%
-      tm_map(tolower)  %>%
-      tm_map(removeWords, c(stopwords("english"),filter_words())) %>%
-      tm_map(stripWhitespace)
+    tm_map(removePunctuation) %>%
+    tm_map(removeNumbers) %>%
+    tm_map(tolower)  %>%
+    tm_map(removeWords, c(stopwords("english"),filter_words())) %>%
+    tm_map(stripWhitespace)
     })
-
-  wordcloud_rep <- repeatable(wordcloud)
   
   tdm_words <- reactive({
-
-  tdm <- TermDocumentMatrix(search_corpus())
-  m <- as.matrix(tdm)
-  v <- sort(rowSums(m),decreasing=TRUE)
-  d <- data.frame(word = names(v),freq=v)
-      })
-    # png("wordcloud.png")
-  plotwc <- reactive({
-     wordcloud(tdm_words()$word,tdm_words()$freq,max.words = 100,
-            random.order = FALSE, colors=brewer.pal(8, "Dark2"))
-
-  # return(wc)
-
+    
+    tdm <- TermDocumentMatrix(search_corpus())})
+  
+  matrix_df_words <- reactive({ 
+    m <- as.matrix(tdm_words())
+    v <- sort(rowSums(m),decreasing=TRUE)
+    d <- data.frame(word = names(v),freq=v)
+    return(d)
   })
+  wordanalysis <- reactive({
+    
+    if (input$word_analysis_type == "wordcloud") {
+  wordcloud_plot <- 
+    # png("wordcloud.png")
+    wc <- wordcloud(matrix_df_words()$word, matrix_df_words()$freq,scale=c(5,0.5),max.words = 150,rot.per = 0.35,
+                              random.order = FALSE, colors=brewer.pal(8, "Dark2")) 
+    return(wc)
+    # dev.off()
+  
+  # output$graph_2 <-  renderPlot(print(wordcloud_plot()))
+  
+    }
+    
+    if (input$word_analysis_type == "word_freq") {
+      
+      wf <- matrix_df_words() %>% slice(1:20)
+      word_freq_plot <- ggplot(data=wf , aes(x = reorder(word, -freq), y = freq, fill= word))+
+        geom_bar(stat="identity")+
+        scale_fill_grey(start = 0.8, end = 0.2,guide=FALSE)+
+        theme(axis.text.x = element_text(angle=60, hjust=1),
+              plot.title = element_text(hjust = 0.5))+
+        labs(title="Top 20 searched words", x="Words", y="Frequency")
+      return(word_freq_plot)
+    }
+    
+    })
+  output$wordcloudout <-  renderPlot(print(wordanalysis()))
+  
+  wassoc <- reactive({
+    wa <- matrix_df_words() %>% slice(1:5) 
+    wa$word <- as.character(wa$word)
+    
+    wass <- findAssocs(tdm_words(), terms = wa$word[1], corlimit = 0.3)
+    wass.df <- as.data.frame(wass) %>% add_rownames("VALUE")
+    firstcolname <- paste("Words associated with -", wa$word[1], sep = " ")
+    wass.df <- wass.df %>% `colnames<-`(c(firstcolname,"Correlation"))
+    
+    })
+  
+  output$wordassocout <- renderTable(wassoc())
+  # output$wordfreqout <- renderPlot(print(wordanalysis()))
+  
+  # output$wordcloud_plot <- downloadHandler(
+  #   filename = function() {
+  #     paste("wordcloud", ".pdf", sep="")
+  #   },
+  #   content = function(file) {
+  #     pdf(file)
+  #     print(wordcloud_plot())
+  #     dev.off()
+  # })
+  
+  
+  
+  }
 
-  # range_selected_data()
 
-  output$graph_2 <- renderPlot(plotwc())
-  output$wordcloud_plot <- downloadHandler(filename =
-                                       function() {
-                                         paste("wordcloud.pdf")
-                                       }, 
-                                    content = function(file) {
-                                         
-                                         pdf(file)
-                                         
-                                         print(plotwc())
-                                         
-                                         dev.off()
-                                         })
-}
+
+
+
+
 shinyApp(ui = ui, server = server)

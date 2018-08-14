@@ -25,6 +25,7 @@ library(topicmodels)
 library(methods)
 library(tidytext)
 library(zoo)
+library(data.table)
 
 set.seed(2008)
 
@@ -301,9 +302,14 @@ p<- ggplot(data= dd, aes(x = reorder(word, -freq), y = freq, fill= word))+
   labs(title="Most frequently searched words", x="Words", y="Frequency")
 print(p)
 
-
 assoc_words <- findAssocs(tdm, terms = dd$word[1], corlimit = 0.3)
-assoc_words
+assoc_words.df <- as.data.frame(assoc_words)
+assoc_words.df
+da <- lapply(seq_len(nrow(dd)), function(i) {
+  list(word=dd$word[i],
+       freq=dd$freq[i],
+       assoc=findAssocs(tdm, terms = dd$word[i], 0.3)[[1]])
+})
 
 # #data_filtered------
 # daterange<-as.Date(c("2015-01-01",max(data_timechanged$fulldatetime)))
