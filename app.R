@@ -613,7 +613,7 @@ server <- function(input, output) {
       )
       
     }
-    else{print("test")}
+    else{print("Word Analysis")}
     })
   output$wordtopicout <- renderText({
     print(monkeylearntopic())

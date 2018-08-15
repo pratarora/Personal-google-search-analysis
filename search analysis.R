@@ -365,24 +365,24 @@ number_of_topics = 4) # number of topics (4 by default)
   # extractedtopic <- monkey_extract(top_terms_topic, extractor_id = "cl_o46qggZq", unnest = TRUE)
   # 
   # if the user asks for a plot (TRUE by default)
-  # if(plot == T){
+  if(plot == T){
     # plot the top ten terms for each topic in order
-    top_terms_data <- top_terms %>% # take the top terms
-      mutate(term = reorder(term, beta)) # sort terms by beta value 
-      top_terms_plot <- ggplot(top_terms_data,aes(term, beta, fill = factor(topic))) + # plot beta by theme
+    top_terms %>% # take the top terms
+      mutate(term = reorder(term, beta)) %>%  # sort terms by beta value 
+       ggplot(aes(term, beta, fill = factor(topic))) + # plot beta by theme
       geom_col(show.legend = FALSE) + # as a bar plot
       facet_wrap(~ topic, scales = "free") + # which each topic in a seperate plot
       theme(plot.title = element_text(hjust = 0.5))+
       labs(x = "Words", y = NULL, title = "Major topics searched") + # no x label, change y label 
       coord_flip() # turn bars sideways
-  # }else{ 
+  }else{
     # if the user does not request a plot
     # return a list of sorted terms instead
-    return(list(top_terms,top_terms_plot))
-  # }
+    return(list(top_terms))
+  }
 }
-a <- top_terms_by_topic_LDA(data$event.query.query_text, number_of_topics = 2, plot= F)
-print(a$top_terms_plot)
+a <- top_terms_by_topic_LDA(data$event.query.query_text, number_of_topics = 2, plot= T)
+print(a)
 
 
 library(monkeylearn)
