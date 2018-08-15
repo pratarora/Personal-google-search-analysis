@@ -60,7 +60,9 @@ ui <- fluidPage(sidebarLayout(
             "Monthly" = "monthly",
             "Weekly" = "weekly",
             "Daily" = "daily",
+            "Hourly" = "hourly",
             "According to days of the week" = "weekdays",
+            "Hourly searches on different days of the week"="hourly_weekday",
             "According to months in a year" = "month_pooled",
             "According to dates of the month" = "dates_pooled"
           ),
@@ -410,7 +412,22 @@ server <- function(input, output) {
         )
       return(dailyplot)
     }
+    if (input$analysis_type == "hourly") {
+    hourlyplot <- ggplot(data_timechanged, aes(x=allhour,y= hourlycount))+
+      stat_summary(aes(x= as.numeric(allhour),y= hourlycount),fun.y = length, # adds up all observations for the month
+                   geom = "bar", colour= "dark blue", alpha= 0.7)+
+      # stat_summary(aes(x= as.numeric(allhour),y= hourlycount),fun.y = length, # adds up all observations for the month
+      #              geom = "line", colour= "red", alpha= 0.8, size= 1) +
+      labs(title= "Hourly Searches",x= "Time(in Hours)", y= "Count")+
+      # scale_x_discrete(labels= (data_timechanged$allhour))+
+      theme(plot.title = element_text(hjust = 0.5))
     
+    # geom_freqpoly(bins=12, alpha=0.7,colour="red",closed = c("right", "left"))+
+    # geom_point(aes(y= hourlycount))
+    # geom_histogram(bins=12, alpha=0.5, colour="black",fill="blue")
+    # geom_line()+geom_point()#+scale_x_datetime()
+    return(hourlyplot)
+  }
     if (input$analysis_type == "weekdays") {
       weekdayplot <-
         ggplot(data = data_timechanged, aes(x = sort(Weekday), weekdaycount)) +
@@ -432,7 +449,19 @@ server <- function(input, output) {
         )
       return(weekdayplot)
     }
-    
+    if (input$analysis_type == "hourly_weekday") {
+      hourly_weekday_plot <- ggplot(data_timechanged, aes(x=allhour,y= hourlycount, group= Weekday))+
+        stat_summary(aes(x= as.numeric(allhour),y= hourlycount),fun.y = length, # adds up all observations for the month
+                     geom = "bar", colour= "dark blue", alpha= 0.7)+
+        facet_grid(.~Weekday, scales = "free")+
+        # stat_summary(aes(x= as.numeric(allhour),y= hourlycount),fun.y = length, # adds up all observations for the month
+        #              geom = "line", colour= "red", alpha= 0.8, size= 1) +
+        labs(title= "Hourly Searches",x= "Time(in Hours)", y= "Count")+
+        # scale_x_discrete(labels= (data_timechanged$allhour))+
+        theme(plot.title = element_text(hjust = 0.5))
+      return(hourly_weekday_plot)
+      
+    }
     if (input$analysis_type == "month_pooled") {
       monthpooledplot <-
         ggplot(data_timechanged, aes(x = allmonths, y = monthlycount)) +
