@@ -22,6 +22,7 @@ library(topicmodels)
 library(methods)
 library(tidytext)
 library(zoo)
+library(shinyjs)
 options(expressions = 10000)
 
 #ui------------------
@@ -79,9 +80,20 @@ ui <- fluidPage(sidebarLayout(
                    "Word Frequency chart" = "word_freq"
                  ),selected = "wordcloud"
                ),
-               wellPanel(
+               
                checkboxInput(inputId = "word_assoc", label = "See word associations" , FALSE)
-               ))
+               ),
+                conditionalPanel("input.word_assoc==true",
+                                 selectInput(inputId = "wordnum",
+                                             label = "Which word's association would you like to know",
+                                             multiple = FALSE,
+                                             c("Select Word",
+                                               "First Word" = "one",
+                                               "Second Word" = "two",
+                                               "Third Word" = "three",
+                                               "Fourth Word" = "four",
+                                               "Fifth Word" = "five")
+                                             ))
       )
     #select what type of analysis is to be done
   #switch command?
@@ -101,10 +113,12 @@ ui <- fluidPage(sidebarLayout(
     conditionalPanel(condition ="input.word_analysis_type==wordcloud",
                      plotOutput("wordcloudout", width = 500, height = 500)),
     
-    
-    conditionalPanel(condition ="input.sidetabselection==2 & input.word_assoc==true",
+    # uiOutput("wordassocout")
+    conditionalPanel(condition ="input.word_assoc=true",
                      tableOutput("wordassocout"))
-        )
+    # conditionalPanel(condition ="input.word_assoc=false",
+                     # removeUI("wordassocout"))
+            )
     
 )))
 
@@ -412,8 +426,12 @@ server <- function(input, output) {
   
   # Word Analysis--------------------
   filter_words <- reactive({  
-    words <- strsplit(input$filterwordsinput, " ")
-    return(words[[1]])
+    
+    words_1 <- strsplit(input$filterwordsinput, " ") 
+    words <- words_1[[1]] %>% tolower() %>% removePunctuation()
+    
+    
+    return(words)
     })
   search_corpus <- reactive({
     corpp <- Corpus(VectorSource(range_selected_data()$search_query)) %>%
@@ -463,18 +481,27 @@ server <- function(input, output) {
     })
   output$wordcloudout <-  renderPlot(print(wordanalysis()))
   
-  wassoc <- reactive({
+  wassoc <- eventReactive(input$wordnum,{ 
     wa <- matrix_df_words() %>% slice(1:5) 
     wa$word <- as.character(wa$word)
     
-    wass <- findAssocs(tdm_words(), terms = wa$word[1], corlimit = 0.3)
+    if (input$wordnum== "one"){n <- 1}
+    if (input$wordnum== "two"){n <- 2}
+    if (input$wordnum== "three"){n <- 3}
+    if (input$wordnum== "four"){n <- 4}
+    if (input$wordnum== "five"){n <- 5}
+    
+    wass <- findAssocs(tdm_words(), terms = wa$word[n], corlimit = 0.3)
     wass.df <- as.data.frame(wass) %>% add_rownames("VALUE")
-    firstcolname <- paste("Words associated with -", wa$word[1], sep = " ")
+    firstcolname <- paste("Words associated with - ", wa$word[n], sep = " ")
     wass.df <- wass.df %>% `colnames<-`(c(firstcolname,"Correlation"))
     
     })
+  # wassoc <- eventReactive(input$word_assoc==FALSE,{
+  #   print(("Word Association turned off"))
+  # })
   
-  output$wordassocout <- renderTable(wassoc())
+  output$wordassocout <- renderTable({wassoc()})
   # output$wordfreqout <- renderPlot(print(wordanalysis()))
   
   # output$wordcloud_plot <- downloadHandler(
