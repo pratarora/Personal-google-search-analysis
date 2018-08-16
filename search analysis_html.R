@@ -28,26 +28,8 @@ library(zoo)
 library(data.table)
 library(rvest)
 library(parsedate)
-options(max.print=1000)
-# invisible(utils::memory.limit(64000))
-
 set.seed(2008)
 
-
-# read all json files----------
-# file_list <- list.files(pattern = ".json")
-# 
-# pages <- list()
-# for (i in seq_along(file_list)) {
-#   data <-
-#     fromJSON(file_list[i], simplifyMatrix = TRUE, flatten = TRUE) %>% #read JSON file
-#     as.data.frame() %>% #convert it into data frame
-#     unnest(event.query.id) # unnest the filed to get time stamp
-#   pages[[i]] <- data #append pages list to add new data
-#   
-# }
-# #combine all files
-# data <- rbind_pages(pages)
 
 
 #read html file
@@ -58,68 +40,48 @@ inputdata <- read_html(filename)
 date_search <- inputdata %>% 
   html_nodes(xpath = '//div[@class="content-cell mdl-cell mdl-cell--6-col mdl-typography--body-1"]') %>% 
   str_extract(pattern = "(?<=<br>)(.*)(?=UTC)") %>% parsedate::parse_date() #%>% 
-  # str_sub(1,21) %>%
-  # dmy_hms()#
-
-head(date_search)
-
-firstdate <- date_search[1] %>% str_detect("AM|PM")
-
-date_search <- (if(firstdate==TRUE){
-  date_search %>% str_extract(pattern = "(.*)(?<=PM|AM)") #%>% mdy_hms()
-  })
   
-firstdate
-
-
-
-datesearch1 <- xmlToList(date_search[1])
-
-date_search2 <- date_search %>% str_extract(pattern = ("(?<=<br>)(.*)(?<=AM|PM)"))
-date_search2
-date_search3 <- date_search2 %>% mdy_hms()
-date_search3
-inputdata 
-datasample <- date_search[1]
-datasample_parsed <- xmlParse(inputdata, asText=TRUE)
-datasample <- datasample %>% unnest()
-
-bind_rows(lapply(xml_attrs(datasample), function(x) data.frame(as.list(x), stringsAsFactors=FALSE)))
-print(inputdata[1])
-library(XML)
-saveXML(datasample,"sample.xml")
+head(date_search)
 
 text_search <- inputdata %>% 
   html_nodes(xpath = '//div[@class="mdl-grid"]/div/div') %>%
   str_extract(pattern = '(?<=<a)(.*)(?=</a>)') %>% 
   str_extract(pattern = '(?<=\">)(.*)')
-
-search_data <- tibble(timestamp = date_search,
+# head(text_search)
+data_timechanged <- tibble(timestamp = date_search,
+                      Date = as_date(date_search),
+                      Year = lubridate::year(date_search),
+                      Month = lubridate::month(date_search, label = TRUE),
+                      Weekday = weekdays(date_search),
+                      Hour = lubridate::hour(date_search),
+                      Week =  as.Date(cut(timestamp, breaks = "week")),
+                      Quarter =  as.Date(cut(timestamp, breaks = "quarter")),
+                      allmonths = format(timestamp, "%m"),
+                      alldates = format(timestamp, "%d"),
+                      allhour = format(timestamp, "%H"),
                       search_query = text_search)
-
+# head(data_timechanged)
 # #change time in microsecond to seconds
 # data_timechanged <- data %>%
 #   mutate()
 #make main dataframe----
 
 #convert epoch time to date and time
-data_timechanged <- data %>%
-  rename('search_query' = 'event.query.query_text') %>%
-  mutate(
-    timestamp_msec = as.numeric(timestamp_usec) / 1000000,
-    fulldatetime = as_datetime(timestamp_msec, tz = "Asia/Calcutta"),
-    time = format(fulldatetime, "%T", tz = "Asia/Calcutta"),
-    Hour = as_datetime(cut(fulldatetime, breaks = "hour")),
-    Day =  as.Date(cut(fulldatetime, breaks = "day")),
-    Weekday = weekdays(as.Date(fulldatetime)),
-    Week =  as.Date(cut(fulldatetime, breaks = "week")),
-    Month =  as.Date(cut(fulldatetime, breaks = "month")),
-    Quarter =  as.Date(cut(fulldatetime, breaks = "quarter")),
-    Year =  as.Date(cut(fulldatetime, breaks = "year")),
-    allmonths = format(fulldatetime, "%m", tz = "Asia/Calcutta"),
-    alldates = format(fulldatetime, "%d", tz = "Asia/Calcutta"),
-    allhour = format(fulldatetime, "%H", tz = "Asia/Calcutta")
-   ) %>% select(-timestamp_usec,-timestamp_msec)
+# data_timechanged <- search_data %>%
+#   mutate(
+#     timestamp_msec = as.numeric(timestamp_usec) / 1000000,
+#     time = format(timestamp, "%T", tz = "Asia/Calcutta"),
+#     Hour = as_datetime(cut(fulldatetime, breaks = "hour")),
+#     Date =  as.Date(cut(fulldatetime, breaks = "day")),
+#     Weekday = weekdays(as.Date(fulldatetime)),
+#     Week =  as.Date(cut(fulldatetime, breaks = "week")),
+#     Month =  as.Date(cut(fulldatetime, breaks = "month")),
+#     Quarter =  as.Date(cut(fulldatetime, breaks = "quarter")),
+#     Year =  as.Date(cut(fulldatetime, breaks = "year")),
+#     allmonths = format(fulldatetime, "%m", tz = "Asia/Calcutta"),
+#     alldates = format(fulldatetime, "%d", tz = "Asia/Calcutta"),
+#     allhour = format(fulldatetime, "%H", tz = "Asia/Calcutta")
+#    ) %>% select(-timestamp_usec,-timestamp_msec)
 
 data_timechanged$Weekday <- factor(data_timechanged$Weekday, levels= c("Sunday", "Monday", 
                                          "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"))
@@ -141,7 +103,7 @@ data_timechanged <-  merge(data_timechanged,weeklystats)
 weekdaystats <- data_timechanged %>%  group_by(Weekday) %>% summarise(weekdaycount= n())
 data_timechanged <-  merge(data_timechanged,weekdaystats)
 
-dailystats <- data_timechanged %>%  group_by(Day) %>% summarise(dailycount= n())
+dailystats <- data_timechanged %>%  group_by(Date) %>% summarise(dailycount= n())
 data_timechanged <-  merge(data_timechanged,dailystats)
 
 hourlystats <- data_timechanged %>%  group_by(Hour) %>% summarise(hourlycount= n()) 
@@ -265,7 +227,7 @@ u <- ggplot(data=data_timechanged,aes(x= sort(Weekday), weekdaycount))+
                geom = "line", colour= "red", alpha= 1, size= 0.8) + # or "line"
   # geom_point(colour="red", alpha= 0.5, shape= 21)+
   geom_smooth()+
-  labs(title= "Searches on various days of the Week",x= "Day", y= "Count")+
+  labs(title= "Searches on various days of the Week",x= "Date", y= "Count")+
   theme(axis.text.x = element_text(angle=45, hjust=1),
         plot.title = element_text(hjust = 0.5))
 print(u)
@@ -299,26 +261,30 @@ y <- ggplot(data_timechanged, aes(x=alldates,y= dailycount))+
 print(y)
 
 
-
+rm(date_search,text_search, inputdata)
 #to create wordcloud--------
 nameremove <- c("Current Location","Mumbai","India","Maharastra","Pune","Hampshire International Business Park")
-data_filtered <- data_timechanged %>% filter( fulldatetime >= "2013-01-01 00:00:00" & fulldatetime <= "2013-12-31 00:00:00")
+data_filtered <- data_timechanged %>% filter( timestamp >= "2008-01-01 00:00:00" & timestamp <= "2018-12-31 00:00:00")
 data_locationremoved <- filter(data_filtered, !str_detect(search_query, paste(nameremove,collapse = '|')))
 
-
+# data_locationremoved <- data_locationremoved[1:20000,]
 corpp <- Corpus(VectorSource(data_locationremoved$search_query)) %>%
   tm_map(removePunctuation) %>%
-  # tm_map(removeNumbers) %>%
+  tm_map(removeNumbers) %>%
   tm_map(tolower)  %>%
   tm_map(removeWords, c(stopwords("english"))) %>%
   tm_map(stripWhitespace) #%>%
 # tm_map(PlainTextDocument)
 # docs <- tm_map(docs, stemDocument)
+data_wordcloud <- data_locationremoved$search_query %>% removePunctuation() %>% removeNumbers()%>% tolower() %>% removeWords(stopwords("english")) %>% stripWhitespace()
+
+data_wordcloud <- tibble(search= data_wordcloud) %>% unnest_tokens(word, search,token="regex")
+d <- data_wordcloud %>% group_by(word) %>%  summarise(freq= n()) %>% arrange(-freq)
 
 tdm <- TermDocumentMatrix(corpp)
-m <- as.matrix(tdm)
-v <- sort(rowSums(m),decreasing=TRUE)
-d <- data.frame(word = names(v),freq=v)
+# m <- as.matrix(tdm)
+# v <- sort(rowSums(m),decreasing=TRUE)
+# d <- data.frame(word = names(v),freq=v)
 dd<-subset(d,freq>10)
 png(filename = "wordsin_2008_test.png",
     width = 10, height = 10, units = "cm", pointsize = 12,res=500,
@@ -353,7 +319,8 @@ p<- ggplot(data= dd, aes(x = reorder(word, -freq), y = freq, fill= word))+
   labs(title="Most frequently searched words", x="Words", y="Frequency")
 print(p)
 
-assoc_words <- findAssocs(tdm, terms = dd$word[1], corlimit = 0.3)
+assoc_words <- findAssocs(tdm, terms = dd$word[3], corlimit = 0.1)
+assoc_words
 assoc_words.df <- as.data.frame(assoc_words)
 assoc_words.df
 da <- lapply(seq_len(nrow(dd)), function(i) {
@@ -361,7 +328,7 @@ da <- lapply(seq_len(nrow(dd)), function(i) {
        freq=dd$freq[i],
        assoc=findAssocs(tdm, terms = dd$word[i], 0.3)[[1]])
 })
-
+da
 # #data_filtered------
 # daterange<-as.Date(c("2015-01-01",max(data_timechanged$fulldatetime)))
 # 

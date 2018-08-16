@@ -59,7 +59,7 @@ data_timechanged <- data %>%
     fulldatetime = as_datetime(timestamp_msec, tz = "Asia/Calcutta"),
     time = format(fulldatetime, "%T", tz = "Asia/Calcutta"),
     Hour = as_datetime(cut(fulldatetime, breaks = "hour")),
-    Day =  as.Date(cut(fulldatetime, breaks = "day")),
+    Date =  as.Date(cut(fulldatetime, breaks = "day")),
     Weekday = weekdays(as.Date(fulldatetime)),
     Week =  as.Date(cut(fulldatetime, breaks = "week")),
     Month =  as.Date(cut(fulldatetime, breaks = "month")),
@@ -90,7 +90,7 @@ data_timechanged <-  merge(data_timechanged,weeklystats)
 weekdaystats <- data_timechanged %>%  group_by(Weekday) %>% summarise(weekdaycount= n())
 data_timechanged <-  merge(data_timechanged,weekdaystats)
 
-dailystats <- data_timechanged %>%  group_by(Day) %>% summarise(dailycount= n())
+dailystats <- data_timechanged %>%  group_by(Date) %>% summarise(dailycount= n())
 data_timechanged <-  merge(data_timechanged,dailystats)
 
 hourlystats <- data_timechanged %>%  group_by(Hour) %>% summarise(hourlycount= n()) 
@@ -214,7 +214,7 @@ u <- ggplot(data=data_timechanged,aes(x= sort(Weekday), weekdaycount))+
                geom = "line", colour= "red", alpha= 1, size= 0.8) + # or "line"
   # geom_point(colour="red", alpha= 0.5, shape= 21)+
   geom_smooth()+
-  labs(title= "Searches on various days of the Week",x= "Day", y= "Count")+
+  labs(title= "Searches on various days of the Week",x= "Date", y= "Count")+
   theme(axis.text.x = element_text(angle=45, hjust=1),
         plot.title = element_text(hjust = 0.5))
 print(u)
