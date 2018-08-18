@@ -1,6 +1,7 @@
 #libraries required for the app------------------
+rm(list = ls())
+
 library(shiny)
-library(jsonlite)
 library(ggplot2)
 library(tidyr)
 library(dplyr)
@@ -24,6 +25,9 @@ library(tidytext)
 library(zoo)
 library(shinyjs)
 library(monkeylearn)
+library(rvest)
+library(parsedate)
+options(shiny.maxRequestSize=100*1024^2)
 options(expressions = 10000)
 
 #ui------------------
@@ -33,9 +37,9 @@ ui <- fluidPage(sidebarLayout(
     #input JSON files
     fileInput(
       inputId = "file_input",
-      "Upload .Json Google takeaway files",
+      "Upload .html Google Search takeaway files",
       multiple = TRUE,
-      accept = ".json"
+      accept = ".html"
     ),
     
     #download csv file
@@ -118,7 +122,7 @@ ui <- fluidPage(sidebarLayout(
   mainPanel(
     conditionalPanel(
       condition = "input.sidetabselection==1",
-      plotOutput("graph", width = 700, height = 700),
+      plotOutput("graph", width = 900, height = 700),
       downloadButton(outputId = "download_searchcount",
                      label = "Download the plot")
     ),
@@ -150,45 +154,33 @@ server <- function(input, output) {
     if (is.null(inFile)) {
       return(NULL)
     } else {
-      num_files <- nrow(inFile)
-      
-      pages <- list()
-      for (i in 1:num_files) {
-        data <-
-          fromJSON(input$file_input[[i, 'datapath']],
-                   simplifyMatrix = TRUE,
-                   flatten = TRUE) %>% #read JSON file
-          as.data.frame() %>% #convert it into data frame
-          unnest(event.query.id) # unnest the filed to get time stamp
-        pages[[i]] <- data #append pages list to add new data
-        
-      }
-      
-      #combine all files
-      data <- rbind_pages(pages)
-    }
-    
+      inputdata <- read_html(inFile$datapath)
+          }
+  date_search <- inputdata %>% 
+      html_nodes(xpath = '//div[@class="content-cell mdl-cell mdl-cell--6-col mdl-typography--body-1"]') %>% 
+      str_extract(pattern = "(?<=<br>)(.*)(?=UTC)") %>% parsedate::parse_date() #%>% 
+  text_search <- inputdata %>% 
+    html_nodes(xpath = '//div[@class="mdl-grid"]/div/div') %>%
+    str_extract(pattern = '(?<=<a)(.*)(?=</a>)') %>% 
+    str_extract(pattern = '(?<=\">)(.*)')  
     
     #to make main data frame-----------------------
     #convert epoch time to date and time
     
-    data_timechanged <- data %>%
-      dplyr::rename('search_query' = 'event.query.query_text') %>%
-      mutate(
-        timestamp_msec = as.numeric(timestamp_usec) / 1000000,
-        fulldatetime = as_datetime(timestamp_msec, tz = "Asia/Calcutta"),
-        time = format(fulldatetime, "%T", tz = "Asia/Calcutta"),
-        Hour = as_datetime(cut(fulldatetime, breaks = "hour")),
-        Day =  as.Date(cut(fulldatetime, breaks = "day")),
-        Weekday = weekdays(as.Date(fulldatetime)),
-        Week =  as.Date(cut(fulldatetime, breaks = "week")),
-        Month =  as.Date(cut(fulldatetime, breaks = "month")),
-        Quarter =  as.Date(as.yearqtr(fulldatetime, format = "%Y-%m-%d")),
-        Year =  as.Date(cut(fulldatetime, breaks = "year")),
-        allmonths = format(fulldatetime, "%m", tz = "Asia/Calcutta"),
-        alldates = format(fulldatetime, "%d", tz = "Asia/Calcutta"),
-        allhour = format(fulldatetime, "%H", tz = "Asia/Calcutta")
-      ) %>% select(-timestamp_usec,-timestamp_msec)
+  data_timechanged <- tibble(timestamp = date_search,
+                             time = format(timestamp, "%T"),
+                             Hour = as_datetime(cut(timestamp, breaks = "hour")),
+                             Date =  as.Date(cut(timestamp, breaks = "day")),
+                             Weekday = weekdays(as.Date(timestamp)),
+                             Week =  as.Date(cut(timestamp, breaks = "week")),
+                             Month =  as.Date(cut(timestamp, breaks = "month")),
+                             Quarter =  as.Date(cut(timestamp, breaks = "quarter")),
+                             Year =  as.Date(cut(timestamp, breaks = "year")),
+                             allmonths = format(timestamp, "%m"),
+                             alldates = format(timestamp, "%d"),
+                             allhour = format(timestamp, "%H"),
+                             search_query = text_search)
+  rm(date_search,text_search, inputdata)
     
     data_timechanged$Weekday <-
       factor(
@@ -212,8 +204,8 @@ server <- function(input, output) {
   #set range of date depending on input files
   
   output$date_range <- renderUI({
-    minval <- min(getData()$Day)
-    maxval <- max(getData()$Day)
+    minval <- min(getData()$Date)
+    maxval <- max(getData()$Date)
     dateRangeInput(
       'date_range',
       label = "Choose time-frame for analysis:",
@@ -231,8 +223,8 @@ server <- function(input, output) {
   #select entries based on input date range
   range_selected_data <- reactive({
     data2 <- getData() %>%
-      filter(Day >= min(input$date_range) &
-               Day <= max(input$date_range))
+      filter(Date >= min(input$date_range) &
+               Date <= max(input$date_range))
     
     #count number of entries based on input date range
     yearlystats <-
@@ -256,7 +248,7 @@ server <- function(input, output) {
     data2 <-  merge(data2, weekdaystats)
     
     dailystats <-
-      data2 %>%  group_by(Day) %>% summarise(dailycount = n())
+      data2 %>%  group_by(Date) %>% summarise(dailycount = n())
     data2 <-  merge(data2, dailystats)
     
     hourlystats <-
@@ -314,7 +306,7 @@ server <- function(input, output) {
     if (input$analysis_type == "quarterly") {
       quarterlyplot <- ggplot(data = range_selected_data(),
                               aes(
-                                as.Date(as.yearqtr(fulldatetime), format = "%Y-%m-%d"),
+                                as.Date(as.yearqtr(timestamp), format = "%Y-%m-%d"),
                                 quarterlycount
                               )) +
         stat_summary(
@@ -343,7 +335,7 @@ server <- function(input, output) {
     }
     if (input$analysis_type == "monthly") {
       monthlyplot <- ggplot(data = range_selected_data(),
-                            aes(as.Date(Month), monthlycount)) +
+                            aes(as.Date(cut(timestamp, breaks = "month")), monthlycount)) +
         stat_summary(
           fun.y = length,
           # adds up all observations for the month
@@ -354,7 +346,7 @@ server <- function(input, output) {
         # stat_summary(fun.y = length, # adds up all observations for the month
         #              geom = "line", colour= "red", alpha= 1, size= 0.8) + # or "line"
         # geom_point(colour="red", alpha= 0.5, shape= 21)+
-        geom_smooth() +
+        # geom_smooth() +
         scale_x_date(labels = date_format("%b-'%y"),
                      date_breaks = "1 month") +
         labs(title = "Monthly Searches", x = "Time", y = "Count") +
@@ -442,7 +434,7 @@ server <- function(input, output) {
         #              geom = "line", colour= "red", alpha= 1, size= 0.8) + # or "line"
         # geom_point(colour="red", alpha= 0.5, shape= 21)+
         geom_smooth() +
-        labs(title = "Searches on various days of the Week", x = "Day", y = "Count") +
+        labs(title = "Searches on various days of the Week", x = "Date", y = "Count") +
         theme(
           axis.text.x = element_text(angle = 45, hjust = 1),
           plot.title = element_text(hjust = 0.5)

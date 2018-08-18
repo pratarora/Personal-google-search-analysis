@@ -41,7 +41,7 @@ date_search <- inputdata %>%
   html_nodes(xpath = '//div[@class="content-cell mdl-cell mdl-cell--6-col mdl-typography--body-1"]') %>% 
   str_extract(pattern = "(?<=<br>)(.*)(?=UTC)") %>% parsedate::parse_date() #%>% 
   
-head(date_search)
+# head(date_search)
 
 text_search <- inputdata %>% 
   html_nodes(xpath = '//div[@class="mdl-grid"]/div/div') %>%
@@ -49,17 +49,18 @@ text_search <- inputdata %>%
   str_extract(pattern = '(?<=\">)(.*)')
 # head(text_search)
 data_timechanged <- tibble(timestamp = date_search,
-                      Date = as_date(date_search),
-                      Year = lubridate::year(date_search),
-                      Month = lubridate::month(date_search, label = TRUE),
-                      Weekday = weekdays(date_search),
-                      Hour = lubridate::hour(date_search),
-                      Week =  as.Date(cut(timestamp, breaks = "week")),
-                      Quarter =  as.Date(cut(timestamp, breaks = "quarter")),
-                      allmonths = format(timestamp, "%m"),
-                      alldates = format(timestamp, "%d"),
-                      allhour = format(timestamp, "%H"),
-                      search_query = text_search)
+                           time = format(timestamp, "%T"),
+                           Hour = as_datetime(cut(timestamp, breaks = "hour")),
+                           Date =  as.Date(cut(timestamp, breaks = "day")),
+                           Weekday = weekdays(as.Date(timestamp)),
+                           Week =  as.Date(cut(timestamp, breaks = "week")),
+                           Month =  as.Date(cut(timestamp, breaks = "month")),
+                           Quarter =  as.Date(cut(timestamp, breaks = "quarter")),
+                           Year =  as.Date(cut(timestamp, breaks = "year")),
+                           allmonths = format(timestamp, "%m"),
+                           alldates = format(timestamp, "%d"),
+                           allhour = format(timestamp, "%H"),
+                          search_query = text_search)
 # head(data_timechanged)
 # #change time in microsecond to seconds
 # data_timechanged <- data %>%
@@ -168,13 +169,13 @@ print(v)
 
 #monthly searches
 r <- ggplot(data = data_timechanged,
-            aes(as.Date(Month), monthlycount)) +
+            aes(as.Date(cut(timestamp, breaks = "month")), monthlycount)) +
   stat_summary(fun.y = length, # adds up all observations for the month
                geom = "bar", colour= "dark blue", alpha= 0.8) + # or "line"
   stat_summary(fun.y = length, # adds up all observations for the month
                geom = "line", colour= "red", alpha= 1, size= 0.8) + # or "line"
   # geom_point(colour="red", alpha= 0.5, shape= 21)+
-  geom_smooth()+
+  # geom_smooth()+
   scale_x_date(
     labels = date_format("%b-'%y"),
     date_breaks = "1 year")+
@@ -323,12 +324,12 @@ assoc_words <- findAssocs(tdm, terms = dd$word[3], corlimit = 0.1)
 assoc_words
 assoc_words.df <- as.data.frame(assoc_words)
 assoc_words.df
-da <- lapply(seq_len(nrow(dd)), function(i) {
-  list(word=dd$word[i],
-       freq=dd$freq[i],
-       assoc=findAssocs(tdm, terms = dd$word[i], 0.3)[[1]])
-})
-da
+# da <- lapply(seq_len(nrow(dd)), function(i) {
+#   list(word=dd$word[i],
+#        freq=dd$freq[i],
+#        assoc=findAssocs(tdm, terms = dd$word[i], 0.3)[[1]])
+# })
+# da
 # #data_filtered------
 # daterange<-as.Date(c("2015-01-01",max(data_timechanged$fulldatetime)))
 # 
@@ -412,5 +413,5 @@ classifier_id = "cl_o46qggZq"
 output <- output %>% unnest()
 output <- as.data.frame(output)
 class(output)
-print(paste(output$req,"is usually associated with", output$label,"( probability =",output$probability,", confidence =",output$confidence,")"),, sep=" "
+print(paste(output$req,"is usually associated with", output$label,"( probability =",output$probability,", confidence =",output$confidence,")"), sep=" "
       )
