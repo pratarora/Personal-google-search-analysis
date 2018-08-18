@@ -132,7 +132,10 @@ ui <- fluidPage(sidebarLayout(
       conditionalPanel(condition = "input.word_analysis_type==wordcloud",
                        plotOutput(
                          "wordcloudout", width = 500, height = 500
-                       )),
+                       )#,
+                       # downloadButton(outputId = "wordcloudplot",
+                       #                label = "Download the plot")
+                       ),
       
       # uiOutput("wordassocout")
        p(conditionalPanel(condition = "input.word_topic=true",
@@ -536,16 +539,21 @@ server <- function(input, output) {
     tdm <- TermDocumentMatrix(search_corpus())
   })
   matrix_df_words <- reactive({
-    m <- as.matrix(tdm_words())
-    v <- sort(rowSums(m), decreasing = TRUE)
-    d <- data.frame(word = names(v), freq = v)
+    data_wordcloud <- range_selected_data()$search_query %>% 
+      removePunctuation() %>% 
+      removeNumbers()%>% 
+      tolower() %>% 
+      removeWords(c(stopwords("english"),filter_words())) %>% 
+      stripWhitespace()
+    
+    data_wordcloud <- tibble(search= data_wordcloud) %>% 
+      unnest_tokens(word, search,token="regex")
+    d <- data_wordcloud %>% group_by(word) %>%  summarise(freq= n()) %>% arrange(-freq)
     return(d)
   })
   wordanalysis <- reactive({
     if (input$word_analysis_type == "wordcloud") {
-      wordcloud_plot <-
-        # png("wordcloud.png")
-        wc <-
+      wc <-
         wordcloud(
           matrix_df_words()$word,
           matrix_df_words()$freq,
@@ -556,10 +564,6 @@ server <- function(input, output) {
           colors = brewer.pal(8, "Dark2")
         )
       return(wc)
-      # dev.off()
-      
-      # output$graph_2 <-  renderPlot(print(wordcloud_plot()))
-      
     }
     
     if (input$word_analysis_type == "word_freq") {
@@ -583,6 +587,22 @@ server <- function(input, output) {
     }
     
   })
+  
+  # wordcloud_plot2 <- reactive({
+  #   # png("wordcloud.png")
+  #   wc <-
+  #     wordcloud(
+  #       matrix_df_words()$word,
+  #       matrix_df_words()$freq,
+  #       scale = c(4, 0.3),
+  #       max.words = 150,
+  #       rot.per = 0.35,
+  #       random.order = FALSE,
+  #       colors = brewer.pal(8, "Dark2")
+  #     )
+  #   return(wc)})
+  
+  
   output$wordcloudout <-  renderPlot(print( wordanalysis()))
   wassoc <- eventReactive(input$wordnum, {
     wa <- matrix_df_words() %>% slice(1:5)
@@ -620,6 +640,7 @@ server <- function(input, output) {
     wassoc()
   })
   
+  
   monkeylearntopic <- reactive({
     if(input$word_topic==TRUE) {
       Sys.getenv("MONKEYLEARN_KEY")
@@ -639,18 +660,19 @@ server <- function(input, output) {
   output$wordtopicout <- renderText({
     print(monkeylearntopic())
   })
-  # output$wordfreqout <- renderPlot(print(wordanalysis()))
-  
-  # output$wordcloud_plot <- downloadHandler(
+  output$wordfreqout <- renderPlot(print(wordanalysis()))
+
+  # output$wordcloudplot <- downloadHandler(
   #   filename = function() {
   #     paste("wordcloud", ".pdf", sep="")
   #   },
   #   content = function(file) {
   #     pdf(file)
-  #     print(wordcloud_plot())
+  #     print(wordcloud_plot2())
   #     dev.off()
+  # 
   # })
-  
+  # 
   
 }
 

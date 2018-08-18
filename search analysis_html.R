@@ -407,7 +407,7 @@ print(a)
 library(monkeylearn)
 Sys.getenv("MONKEYLEARN_KEY")
 # top_terms_topic <- a %>% group_by(topic) %>% summarise(text= paste(a$term, collapse=" "))
-output <- monkey_classify(input = dd$word[1],key = monkeylearn_key(quiet = TRUE),
+output <- monkey_classify(input = dd$word[3],key = monkeylearn_key(quiet = TRUE),
 classifier_id = "cl_o46qggZq"
 )
 output <- output %>% unnest()
