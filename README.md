@@ -16,19 +16,19 @@ https://takeout.google.com/settings/takeout?pli=1
 7) Extract the Archive
 8) Remember the location of the extracted archive
 
-Then run app.R in Rstudio and upload the search archive file named (My Activity.html) (NOT index.html)
-Enjoy the insights :)
-(If you are new to R/Rstudio, please install all the libraries using the command install.packages("packagename")
-(If you are using just R and not Rstudio, you'll need to run the following commands in R console :
+<br>Then run app.R in Rstudio and upload the search archive file named (My Activity.html) (NOT index.html)
+<br>Enjoy the insights :)
+<br>(If you are new to R/Rstudio, please install all the libraries using the command install.packages("packagename")
+<br>(If you are using just R and not Rstudio, you'll need to run the following commands in R console :
 
-require(shiny)
+<br>require(shiny)
 <br>folder_address = 'C://Users//User 1//Documents//test_app'
 <br>runApp(folder_address, launch.browser=TRUE)
 
-If you are using Linux and want to launch the app from terminal (not R console) then:
+<br>If you are using Linux and want to launch the app from terminal (not R console) then:
 
-Rscript -e 'library(methods); shiny::runApp("shinyapp/", launch.browser=TRUE)'
-)
+<br>Rscript -e 'library(methods); shiny::runApp("shinyapp/", launch.browser=TRUE)'
+<br>)
 
 
-Hope you enjoy the app!
+<br>Hope you enjoy the app!
