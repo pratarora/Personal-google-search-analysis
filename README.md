@@ -22,7 +22,7 @@ Enjoy the insights :)
 (If you are using just R and not Rstudio, you'll need to run the following commands in R console :
 
 require(shiny)
-folder_address = 'C://Users//User 1//Documents//test_app'
+<br>folder_address = 'C://Users//User 1//Documents//test_app'
 runApp(folder_address, launch.browser=TRUE)
 
 If you are using Linux and want to launch the app from terminal (not R console) then:
