@@ -28,7 +28,29 @@ options(shiny.maxRequestSize=100*1024^2)
 options(expressions = 10000)
 
 #ui------------------
-ui <- fluidPage(sidebarLayout(
+ui <- fluidPage(
+  title = "Personal Google Search Analysis",
+   wellPanel (
+     h1("Personal Google Search Analysis"),
+     p("This is a R based shiny app for personal google search analysis over the years"),
+     p("To run the app you need to download your google search history. For this you'll have to:"),
+     tags$ol(
+       tags$li("Visit website---", tags$a(href="https://takeout.google.com/settings/takeout?pli=1","Download data from Google Account")),
+       tags$li("Select none (unless you want to download other data)"),
+       tags$li("Go to My Activity"),
+       tags$li("Select specific activity data"),
+       tags$li(" Select Search"),
+       tags$li("Next and download the Archive"),
+       tags$li("Extract the Archive"),
+       tags$li("Remember the location of the extracted archive"),
+       tags$li("Upload the search archive file named (My Activity.html) (NOT index.html)")
+     ),
+     
+     p("Enjoy the app! :)"),
+     p("Made By Prateek Arora")
+   ),
+  
+  sidebarLayout(
   #sidebar panel UI-------------
   sidebarPanel(
     #input JSON files
@@ -132,13 +154,13 @@ ui <- fluidPage(sidebarLayout(
                        )#,
                        # downloadButton(outputId = "wordcloudplot",
                        #                label = "Download the plot")
-                       ),
+      ),
       
       # uiOutput("wordassocout")
-       p(conditionalPanel(condition = "input.word_topic=true",
-                       verbatimTextOutput("wordtopicout"))),
+      p(conditionalPanel(condition = "input.word_topic=true",
+                         verbatimTextOutput("wordtopicout"))),
       conditionalPanel(condition = "input.word_assoc=true",column(1,
-                        tableOutput("wordassocout")))
+                                                                  tableOutput("wordassocout")))
       
       # conditionalPanel(condition ="input.word_assoc=false",
       # removeUI("wordassocout"))
@@ -155,32 +177,32 @@ server <- function(input, output) {
       return(NULL)
     } else {
       inputdata <- read_html(inFile$datapath)
-          }
-  date_search <- inputdata %>% 
+    }
+    date_search <- inputdata %>% 
       html_nodes(xpath = '//div[@class="content-cell mdl-cell mdl-cell--6-col mdl-typography--body-1"]') %>% 
       str_extract(pattern = "(?<=<br>)(.*)(?=UTC)") %>% parsedate::parse_date() #%>% 
-  text_search <- inputdata %>% 
-    html_nodes(xpath = '//div[@class="mdl-grid"]/div/div') %>%
-    str_extract(pattern = '(?<=<a)(.*)(?=</a>)') %>% 
-    str_extract(pattern = '(?<=\">)(.*)')  
+    text_search <- inputdata %>% 
+      html_nodes(xpath = '//div[@class="mdl-grid"]/div/div') %>%
+      str_extract(pattern = '(?<=<a)(.*)(?=</a>)') %>% 
+      str_extract(pattern = '(?<=\">)(.*)')  
     
     #to make main data frame-----------------------
     #convert epoch time to date and time
     
-  data_timechanged <- tibble(timestamp = date_search,
-                             time = format(timestamp, "%T"),
-                             Hour = as_datetime(cut(timestamp, breaks = "hour")),
-                             Date =  as.Date(cut(timestamp, breaks = "day")),
-                             Weekday = weekdays(as.Date(timestamp)),
-                             Week =  as.Date(cut(timestamp, breaks = "week")),
-                             Month =  as.Date(cut(timestamp, breaks = "month")),
-                             Quarter =  as.Date(cut(timestamp, breaks = "quarter")),
-                             Year =  as.Date(cut(timestamp, breaks = "year")),
-                             allmonths = format(timestamp, "%m"),
-                             alldates = format(timestamp, "%d"),
-                             allhour = format(timestamp, "%H"),
-                             search_query = text_search) %>% na.omit()
-  rm(date_search,text_search, inputdata)
+    data_timechanged <- tibble(timestamp = date_search,
+                               time = format(timestamp, "%T"),
+                               Hour = as_datetime(cut(timestamp, breaks = "hour")),
+                               Date =  as.Date(cut(timestamp, breaks = "day")),
+                               Weekday = weekdays(as.Date(timestamp)),
+                               Week =  as.Date(cut(timestamp, breaks = "week")),
+                               Month =  as.Date(cut(timestamp, breaks = "month")),
+                               Quarter =  as.Date(cut(timestamp, breaks = "quarter")),
+                               Year =  as.Date(cut(timestamp, breaks = "year")),
+                               allmonths = format(timestamp, "%m"),
+                               alldates = format(timestamp, "%d"),
+                               allhour = format(timestamp, "%H"),
+                               search_query = text_search) %>% na.omit()
+    rm(date_search,text_search, inputdata)
     
     data_timechanged$Weekday <-
       factor(
@@ -417,21 +439,21 @@ server <- function(input, output) {
       return(dailyplot)
     }
     if (input$analysis_type == "hourly") {
-    hourlyplot <- ggplot(range_selected_data(), aes(x=allhour,y= hourlycount))+
-      stat_summary(aes(x= as.numeric(allhour),y= hourlycount),fun.y = length, # adds up all observations for the month
-                   geom = "bar", colour= "dark blue", alpha= 0.7)+
-      # stat_summary(aes(x= as.numeric(allhour),y= hourlycount),fun.y = length, # adds up all observations for the month
-      #              geom = "line", colour= "red", alpha= 0.8, size= 1) +
-      labs(title= "Hourly Searches",x= "Time(in Hours)", y= "Count")+
-      # scale_x_discrete(labels= (data_timechanged$allhour))+
-      theme(plot.title = element_text(hjust = 0.5))
-    
-    # geom_freqpoly(bins=12, alpha=0.7,colour="red",closed = c("right", "left"))+
-    # geom_point(aes(y= hourlycount))
-    # geom_histogram(bins=12, alpha=0.5, colour="black",fill="blue")
-    # geom_line()+geom_point()#+scale_x_datetime()
-    return(hourlyplot)
-  }
+      hourlyplot <- ggplot(range_selected_data(), aes(x=allhour,y= hourlycount))+
+        stat_summary(aes(x= as.numeric(allhour),y= hourlycount),fun.y = length, # adds up all observations for the month
+                     geom = "bar", colour= "dark blue", alpha= 0.7)+
+        # stat_summary(aes(x= as.numeric(allhour),y= hourlycount),fun.y = length, # adds up all observations for the month
+        #              geom = "line", colour= "red", alpha= 0.8, size= 1) +
+        labs(title= "Hourly Searches",x= "Time(in Hours)", y= "Count")+
+        # scale_x_discrete(labels= (data_timechanged$allhour))+
+        theme(plot.title = element_text(hjust = 0.5))
+      
+      # geom_freqpoly(bins=12, alpha=0.7,colour="red",closed = c("right", "left"))+
+      # geom_point(aes(y= hourlycount))
+      # geom_histogram(bins=12, alpha=0.5, colour="black",fill="blue")
+      # geom_line()+geom_point()#+scale_x_datetime()
+      return(hourlyplot)
+    }
     if (input$analysis_type == "weekdays") {
       weekdayplot <-
         ggplot(data = range_selected_data(), aes(x = sort(Weekday), weekdaycount)) +
@@ -658,19 +680,19 @@ server <- function(input, output) {
       aa <- dd$word[1]
       
       monkey_topic <- monkey_classify(input = dd$word[1],key = monkeylearn_key(quiet = TRUE),
-      classifier_id = "cl_o46qggZq")
+                                      classifier_id = "cl_o46qggZq")
       output_monkey <- monkey_topic %>% unnest() %>% as.data.frame()
       print(paste(output_monkey$req,"is usually associated with", output_monkey$label,"( probability =",output_monkey$probability,", confidence =",output_monkey$confidence,")"), sep=" "
       )
       
     }
     else{print("Word Analysis")}
-    })
+  })
   output$wordtopicout <- renderText({
     print(monkeylearntopic())
   })
   output$wordfreqout <- renderPlot(print(wordanalysis()))
-
+  
   # output$wordcloudplot <- downloadHandler(
   #   filename = function() {
   #     paste("wordcloud", ".pdf", sep="")
