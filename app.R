@@ -128,7 +128,7 @@ ui <- fluidPage(
             )
           )
         ),
-        checkboxInput(inputId = "word_topic", label = "See what topic is your top word usually associated with? (Does not work on locations/numbers -- Remove them from analysis to know the topics) " , FALSE)
+        checkboxInput(inputId = "word_topic", label = "See what topic is your top word usually associated with? (Does not work on locations/numbers -- Remove them from analysis to know the topics) (May not work-- Requires Monkeylearn ID and API; contact author for details)  " , FALSE)
       )  
       
     )
