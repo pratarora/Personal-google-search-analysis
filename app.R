@@ -580,6 +580,7 @@ server <- function(input, output) {
     data_wordcloud <- tibble(search= data_wordcloud) %>% 
       unnest_tokens(word, search,token="regex")
     d <- data_wordcloud %>% group_by(word) %>%  summarise(freq= n()) %>% arrange(-freq)
+    rm(data_wordcloud)
     return(d)
   })
   wordanalysis <- reactive({
