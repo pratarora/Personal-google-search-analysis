@@ -23,7 +23,7 @@ Enjoy the insights :)
 
 require(shiny)
 <br>folder_address = 'C://Users//User 1//Documents//test_app'
-runApp(folder_address, launch.browser=TRUE)
+<br>runApp(folder_address, launch.browser=TRUE)
 
 If you are using Linux and want to launch the app from terminal (not R console) then:
 
