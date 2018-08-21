@@ -18,12 +18,9 @@ library(tm)
 library(ColorPalette)
 library(RColorBrewer)
 library(wordcloud)
-library(wordcloud2)
-library(topicmodels)
 library(methods)
 library(tidytext)
 library(zoo)
-library(shinyjs)
 library(monkeylearn)
 library(rvest)
 library(parsedate)
@@ -182,7 +179,7 @@ server <- function(input, output) {
                              allmonths = format(timestamp, "%m"),
                              alldates = format(timestamp, "%d"),
                              allhour = format(timestamp, "%H"),
-                             search_query = text_search)
+                             search_query = text_search) %>% na.omit()
   rm(date_search,text_search, inputdata)
     
     data_timechanged$Weekday <-
@@ -233,30 +230,42 @@ server <- function(input, output) {
     yearlystats <-
       data2 %>%  group_by(Year) %>% summarise(yearlycount = n())
     data2 <-  merge(data2, yearlystats)
+    rm(yearlystats)
     
     quarterlystats <-
       data2 %>%  group_by(Quarter) %>% summarise(quarterlycount = n())
     data2 <-  merge(data2, quarterlystats)
+    rm(quarterlystats)
+    
     
     monthlystats <-
       data2 %>%  group_by(Month) %>% summarise(monthlycount = n())
     data2 <-  merge(data2, monthlystats)
+    rm(monthlystats)
+    
     
     weeklystats <-
       data2 %>%  group_by(Week) %>% summarise(weeklycount = n())
     data2 <-  merge(data2, weeklystats)
+    rm(weeklystats)
+    
     
     weekdaystats <-
       data2 %>%  group_by(Weekday) %>% summarise(weekdaycount = n())
     data2 <-  merge(data2, weekdaystats)
+    rm(weekdaystats)
+    
     
     dailystats <-
       data2 %>%  group_by(Date) %>% summarise(dailycount = n())
     data2 <-  merge(data2, dailystats)
+    rm(dailystats)
+    
     
     hourlystats <-
       data2 %>%  group_by(Hour) %>% summarise(hourlycount = n())
     data2 <-  merge(data2, hourlystats)
+    rm(hourlystats)
     data2
     
   })
@@ -408,7 +417,7 @@ server <- function(input, output) {
       return(dailyplot)
     }
     if (input$analysis_type == "hourly") {
-    hourlyplot <- ggplot(data_timechanged, aes(x=allhour,y= hourlycount))+
+    hourlyplot <- ggplot(range_selected_data(), aes(x=allhour,y= hourlycount))+
       stat_summary(aes(x= as.numeric(allhour),y= hourlycount),fun.y = length, # adds up all observations for the month
                    geom = "bar", colour= "dark blue", alpha= 0.7)+
       # stat_summary(aes(x= as.numeric(allhour),y= hourlycount),fun.y = length, # adds up all observations for the month
@@ -425,7 +434,7 @@ server <- function(input, output) {
   }
     if (input$analysis_type == "weekdays") {
       weekdayplot <-
-        ggplot(data = data_timechanged, aes(x = sort(Weekday), weekdaycount)) +
+        ggplot(data = range_selected_data(), aes(x = sort(Weekday), weekdaycount)) +
         stat_summary(
           fun.y = length,
           # adds up all observations for the month
@@ -445,7 +454,7 @@ server <- function(input, output) {
       return(weekdayplot)
     }
     if (input$analysis_type == "hourly_weekday") {
-      hourly_weekday_plot <- ggplot(data_timechanged, aes(x=allhour,y= hourlycount, group= Weekday))+
+      hourly_weekday_plot <- ggplot(range_selected_data(), aes(x=allhour,y= hourlycount, group= Weekday))+
         stat_summary(aes(x= as.numeric(allhour),y= hourlycount),fun.y = length, # adds up all observations for the month
                      geom = "bar", colour= "dark blue", alpha= 0.7)+
         facet_grid(.~Weekday, scales = "free")+
@@ -459,7 +468,7 @@ server <- function(input, output) {
     }
     if (input$analysis_type == "month_pooled") {
       monthpooledplot <-
-        ggplot(data_timechanged, aes(x = allmonths, y = monthlycount)) +
+        ggplot(range_selected_data(), aes(x = allmonths, y = monthlycount)) +
         stat_summary(
           fun.y = length,
           # adds up all observations for the month
@@ -480,7 +489,7 @@ server <- function(input, output) {
     
     if (input$analysis_type == "dates_pooled") {
       dates_pooled_plot <-
-        ggplot(data_timechanged, aes(x = alldates, y = dailycount)) +
+        ggplot(range_selected_data(), aes(x = alldates, y = dailycount)) +
         stat_summary(
           fun.y = length,
           # adds up all observations for the month
@@ -625,7 +634,7 @@ server <- function(input, output) {
     }
     
     wass <-
-      findAssocs(tdm_words(), terms = wa$word[n], corlimit = 0.3)
+      findAssocs(tdm_words(), terms = wa$word[n], corlimit = 0.1)
     wass.df <- as.data.frame(wass) %>% add_rownames("VALUE")
     firstcolname <-
       paste("Words associated with - ", wa$word[n], sep = " ")
