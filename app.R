@@ -15,30 +15,33 @@ library(zoo)
 library(monkeylearn)
 library(rvest)
 library(parsedate)
+library(purrr)
 options(shiny.maxRequestSize=100*1024^2)
 options(expressions = 10000)
 
 #ui------------------
 ui <- fluidPage(
-  title = "Personal Google Search Analysis",
+  title = "SearchAna",
    wellPanel (
-     h1("Personal Google Search Analysis"),
-     p("This is a R based shiny app for personal google search analysis over the years"),
+     h1("SearchAna"),
+     p("This is a R based app which analyzes your Google Searches over the years."),
+     p(tags$b("The app does not store any of your information and runs offline using your computer.")),
      p("To run the app you need to download your google search history. For this you'll have to:"),
      tags$ol(
-       tags$li("Visit website---", tags$a(href="https://takeout.google.com/settings/takeout?pli=1","Download data from Google Account")),
+       tags$li("Visit website---", tags$a(href="https://takeout.google.com/settings/takeout?pli=1","Download data from Google Account", target= "_blank")),
        tags$li("Select none (unless you want to download other data)"),
-       tags$li("Go to My Activity"),
+       tags$li("Go to My Activity and toggle it on"),
        tags$li("Select specific activity data"),
-       tags$li(" Select Search"),
+       tags$li("Select Search"),
        tags$li("Next and download the Archive"),
        tags$li("Extract the Archive"),
        tags$li("Remember the location of the extracted archive"),
-       tags$li("Upload the search archive file named (My Activity.html) (NOT index.html)")
+       tags$li("Now in the app, 'Browse' to your to the extracted archive"),
+       tags$li("Goto Takeout >> My Activity >> Search >> Upload file named (My Activity.html) (NOT index.html)")
      ),
-     
      p("Enjoy the app! :)"),
-     p("Made By Prateek Arora")
+     p("Made By Prateek Arora"),
+     p("Code available at ", tags$a(href="https://github.com/pratarora/Personal-google-search-analysis", "Github.", target= "_blank"))
    ),
   
   sidebarLayout(
@@ -160,7 +163,7 @@ ui <- fluidPage(
 ))
 
 #server--------------
-server <- function(input, output) {
+server <- function(input, output, session) {
   # JSON file input------------
   getData <- reactive({
     inFile <- input$file_input
@@ -695,7 +698,10 @@ server <- function(input, output) {
   # 
   # })
   # 
-  
+  session$onSessionEnded(function() {
+    stopApp()
+    q("no")
+  })
 }
 
 
