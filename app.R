@@ -1,6 +1,13 @@
 #libraries required for the app------------------
 rm(list = ls())
 
+pkg <- c("shiny", "ggplot2","dplyr","lubridate","scales","stringr","tm","RColorBrewer",
+         "wordcloud", "tidytext","zoo","monkeylearn","parsedate","rvest","purrr")
+new.pkg <- pkg[!(pkg %in% installed.packages())]
+if (length(new.pkg)) {
+  install.packages(new.pkg)
+}
+
 library(shiny)
 library(ggplot2)
 library(dplyr)
