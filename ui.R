@@ -26,7 +26,7 @@ ui <- fluidPage(
   wellPanel (
     h1("SearchAna"),
     p("This is a R based app which analyzes your Google Searches over the years."),
-    p(tags$b("The app does not store any of your information and runs offline using your computer.")),
+    p(tags$b("The app does not store any of your information.")),
     p("To run the app you need to download your google search history. For this you'll have to:"),
     tags$ol(
       tags$li("Visit website---", tags$a(href="https://takeout.google.com/settings/takeout?pli=1","Download data from Google Account", target= "_blank")),
