@@ -1,14 +1,5 @@
-#libraries required for the app------------------
-rm(list = ls())
-
-pkg <- c("shiny", "ggplot2","dplyr","lubridate","scales","stringr","tm","RColorBrewer",
-         "wordcloud", "tidytext","zoo","monkeylearn","parsedate","rvest","purrr")
-new.pkg <- pkg[!(pkg %in% installed.packages())]
-if (length(new.pkg)) {
-  install.packages(new.pkg)
-}
-
 library(shiny)
+library(shinythemes)
 library(ggplot2)
 library(dplyr)
 library(lubridate)
@@ -19,155 +10,14 @@ library(RColorBrewer)
 library(wordcloud)
 library(tidytext)
 library(zoo)
-library(monkeylearn)
+library(shinycssloaders)
 library(rvest)
 library(parsedate)
 library(purrr)
 options(shiny.maxRequestSize=100*1024^2)
 options(expressions = 10000)
+options(spinner.type = 1)
 
-#ui------------------
-ui <- fluidPage(
-  title = "SearchAna",
-   wellPanel (
-     h1("SearchAna"),
-     p("This is a R based app which analyzes your Google Searches over the years."),
-     p(tags$b("The app does not store any of your information and runs offline using your computer.")),
-     p("To run the app you need to download your google search history. For this you'll have to:"),
-     tags$ol(
-       tags$li("Visit website---", tags$a(href="https://takeout.google.com/settings/takeout?pli=1","Download data from Google Account", target= "_blank")),
-       tags$li("Select none (unless you want to download other data)"),
-       tags$li("Go to My Activity and toggle it on"),
-       tags$li("Select specific activity data"),
-       tags$li("Select Search"),
-       tags$li("Next and download the Archive"),
-       tags$li("Extract the Archive"),
-       tags$li("Remember the location of the extracted archive"),
-       tags$li("Now in the app, 'Browse' to your to the extracted archive"),
-       tags$li("Goto Takeout >> My Activity >> Search >> Upload file named (My Activity.html) (NOT index.html)")
-     ),
-     p("Enjoy the app! :)"),
-     p("Made By Prateek Arora"),
-     p("Code available at ", tags$a(href="https://github.com/pratarora/Personal-google-search-analysis", "Github.", target= "_blank"))
-   ),
-  
-  sidebarLayout(
-  #sidebar panel UI-------------
-  sidebarPanel(
-    #input JSON files
-    fileInput(
-      inputId = "file_input",
-      "Upload .html Google Search takeaway files",
-      multiple = TRUE,
-      accept = ".html"
-    ),
-    
-    #download csv file
-    downloadButton(outputId = "downloadData", label = "Download the csv"),
-    
-    #input date range for analysis based on input files
-    uiOutput("date_range"),
-    tags$hr(),
-    tabsetPanel(
-      type = "pills",
-      id = "sidetabselection",
-      #search count analysis ui----------------
-      tabPanel(
-        "Search Count Analysis",
-        value = 1,
-        radioButtons(
-          inputId = "analysis_type",
-          label = "How would you like your analysis to be performed?",
-          c(
-            "Yearly" = "yearly",
-            "Quarterly" = "quarterly",
-            "Monthly" = "monthly",
-            "Weekly" = "weekly",
-            "Daily" = "daily",
-            "Hourly" = "hourly",
-            "According to days of the week" = "weekdays",
-            "Hourly searches on different days of the week"="hourly_weekday",
-            "According to months in a year" = "month_pooled",
-            "According to dates of the month" = "dates_pooled"
-          ),
-          selected = "monthly"
-        )
-      ),
-      #word analysis ui-----------------
-      tabPanel(
-        "Word Analysis",
-        value = 2,
-        textInput(
-          inputId = "filterwordsinput",
-          label = "Words to remove from the analysis (Seprate words by a space)",
-          value = NULL
-        ),
-        
-        radioButtons(
-          inputId = "word_analysis_type",
-          label = "How would you like your analysis to be performed?",
-          c("Word Cloud" = "wordcloud",
-            "Word Frequency chart" = "word_freq"),
-          selected = "wordcloud"
-        ),
-        
-        checkboxInput(inputId = "word_assoc", label = "See word associations" , FALSE),
-        
-        conditionalPanel(
-          "input.word_assoc==true",
-          selectInput(
-            inputId = "wordnum",
-            label = "Which word's association would you like to know",
-            multiple = FALSE,
-            c(
-              "Select Word",
-              "First Word" = "one",
-              "Second Word" = "two",
-              "Third Word" = "three",
-              "Fourth Word" = "four",
-              "Fifth Word" = "five"
-            )
-          )
-        ),
-        checkboxInput(inputId = "word_topic", label = "See what topic is your top word usually associated with? (Does not work on locations/numbers -- Remove them from analysis to know the topics)(May not work-- Requires Monkeylearn ID and API; contact author for details) " , FALSE)
-      )  
-      
-    )
-    #select what type of analysis is to be done
-    #switch command?
-    
-  ),
-  
-  #main panel UI------------
-  mainPanel(
-    conditionalPanel(
-      condition = "input.sidetabselection==1",
-      plotOutput("graph", width = 900, height = 700),
-      downloadButton(outputId = "download_searchcount",
-                     label = "Download the plot")
-    ),
-    conditionalPanel(
-      condition = "input.sidetabselection==2",
-      
-      conditionalPanel(condition = "input.word_analysis_type==wordcloud",
-                       plotOutput(
-                         "wordcloudout", width = 500, height = 500
-                       )#,
-                       # downloadButton(outputId = "wordcloudplot",
-                       #                label = "Download the plot")
-      ),
-      
-      # uiOutput("wordassocout")
-      p(conditionalPanel(condition = "input.word_topic=true",
-                         verbatimTextOutput("wordtopicout"))),
-      conditionalPanel(condition = "input.word_assoc=true",column(1,
-                                                                  tableOutput("wordassocout")))
-      
-      # conditionalPanel(condition ="input.word_assoc=false",
-      # removeUI("wordassocout"))
-    )
-  )
-))
 
 #server--------------
 server <- function(input, output, session) {
@@ -177,11 +27,14 @@ server <- function(input, output, session) {
     if (is.null(inFile)) {
       return(NULL)
     } else {
+      # inputdata <- read_html("My Activity.html")
       inputdata <- read_html(inFile$datapath)
     }
-    date_search <- inputdata %>% 
-      html_nodes(xpath = '//div[@class="content-cell mdl-cell mdl-cell--6-col mdl-typography--body-1"]') %>% 
-      str_extract(pattern = "(?<=<br>)(.*)(?=UTC)") %>% parsedate::parse_date() #%>% 
+    date_search <- inputdata  %>% 
+      html_nodes(xpath = '//div[@class="content-cell mdl-cell mdl-cell--6-col mdl-typography--body-1"]') %>%
+      str_extract(pattern = "(?<=<br>)(.*)(?=</div>)") %>% parsedate::parse_date() 
+    date_search %>% head()
+    
     text_search <- inputdata %>% 
       html_nodes(xpath = '//div[@class="mdl-grid"]/div/div') %>%
       str_extract(pattern = '(?<=<a)(.*)(?=</a>)') %>% 
@@ -203,6 +56,7 @@ server <- function(input, output, session) {
                                alldates = format(timestamp, "%d"),
                                allhour = format(timestamp, "%H"),
                                search_query = text_search) %>% na.omit()
+    data_timechanged %>% head
     rm(date_search,text_search, inputdata)
     
     data_timechanged$Weekday <-
@@ -312,9 +166,9 @@ server <- function(input, output, session) {
   graph_ggplot <- reactive({
     if (input$analysis_type == "yearly") {
       yearlyplot <- ggplot(data = range_selected_data(),
-                           aes(as.Date(Year), yearlycount)) +
+                           aes(x = as.Date(Year),y =  yearlycount)) +
         stat_summary(
-          fun.y = length,
+          fun = length,
           # adds up all observations for the month
           geom = "bar",
           colour = "dark blue",
@@ -339,11 +193,12 @@ server <- function(input, output, session) {
       return(yearlyplot)
     }
     if (input$analysis_type == "quarterly") {
-      quarterlyplot <- ggplot(data = range_selected_data(),
-                              aes(
-                                as.Date(as.yearqtr(timestamp), format = "%Y-%m-%d"),
-                                quarterlycount
-                              )) +
+      quarterlyplot <- 
+        ggplot(data = range_selected_data(),
+               aes(
+                 x=as.Date(as.yearqtr(timestamp), format = "%Y-%m-%d"),
+                 y=quarterlycount
+               )) +
         stat_summary(
           fun.y = length,
           # adds up all observations for the month
@@ -705,15 +560,8 @@ server <- function(input, output, session) {
   # 
   # })
   # 
-  session$onSessionEnded(function() {
-    stopApp()
-    q("no")
-  })
+  # session$onSessionEnded(function() {
+  #   stopApp()
+  #   q("no")
+  # })
 }
-
-
-
-
-
-
-shinyApp(ui = ui, server = server)
