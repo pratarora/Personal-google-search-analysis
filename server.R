@@ -15,7 +15,7 @@ library(rvest)
 library(parsedate)
 library(purrr)
 library(plotly)
-options(shiny.maxRequestSize=100*1024^2)
+options(shiny.maxRequestSize=20*1024^2)
 options(expressions = 10000)
 options(spinner.type = 1)
 
