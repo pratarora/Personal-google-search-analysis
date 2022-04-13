@@ -14,9 +14,12 @@ library(shinycssloaders)
 library(rvest)
 library(parsedate)
 library(purrr)
+library(plotly)
 options(shiny.maxRequestSize=100*1024^2)
 options(expressions = 10000)
 options(spinner.type = 1)
+
+
 
 
 #server--------------
@@ -45,34 +48,31 @@ server <- function(input, output, session) {
     
     data_timechanged <- tibble(timestamp = date_search,
                                time = format(timestamp, "%T"),
-                               Hour = as_datetime(cut(timestamp, breaks = "hour")),
-                               Date =  as.Date(cut(timestamp, breaks = "day")),
-                               Weekday = weekdays(as.Date(timestamp)),
-                               Week =  as.Date(cut(timestamp, breaks = "week")),
-                               Month =  as.Date(cut(timestamp, breaks = "month")),
-                               Quarter =  as.Date(cut(timestamp, breaks = "quarter")),
-                               Year =  as.Date(cut(timestamp, breaks = "year")),
-                               allmonths = format(timestamp, "%m"),
-                               alldates = format(timestamp, "%d"),
-                               allhour = format(timestamp, "%H"),
+                               Hour = lubridate::hour(date_search),
+                               Date =  lubridate::date(date_search),
+                               Weekday = weekdays(date_search),
+                               Week =  lubridate::week(date_search),
+                               Month =  lubridate::month(ymd_hms(date_search), label = TRUE, abbr = FALSE),
+                               Quarter =  lubridate::quarter(date_search),
+                               Year = lubridate::year(date_search),
                                search_query = text_search) %>% na.omit()
     data_timechanged %>% head
     rm(date_search,text_search, inputdata)
     
-    data_timechanged$Weekday <-
-      factor(
-        data_timechanged$Weekday,
-        levels = c(
-          "Sunday",
-          "Monday",
-          "Tuesday",
-          "Wednesday",
-          "Thursday",
-          "Friday",
-          "Saturday"
-        )
-      )
-    
+    # data_timechanged$Weekday <-
+    #   factor(
+    #     data_timechanged$Weekday,
+    #     levels = c(
+    #       "Sunday",
+    #       "Monday",
+    #       "Tuesday",
+    #       "Wednesday",
+    #       "Thursday",
+    #       "Friday",
+    #       "Saturday"
+    #     )
+    #   )
+    # 
     data_timechanged
   })
   
@@ -102,48 +102,7 @@ server <- function(input, output, session) {
     data2 <- getData() %>%
       filter(Date >= min(input$date_range) &
                Date <= max(input$date_range))
-    
-    #count number of entries based on input date range
-    yearlystats <-
-      data2 %>%  group_by(Year) %>% summarise(yearlycount = n())
-    data2 <-  merge(data2, yearlystats)
-    rm(yearlystats)
-    
-    quarterlystats <-
-      data2 %>%  group_by(Quarter) %>% summarise(quarterlycount = n())
-    data2 <-  merge(data2, quarterlystats)
-    rm(quarterlystats)
-    
-    
-    monthlystats <-
-      data2 %>%  group_by(Month) %>% summarise(monthlycount = n())
-    data2 <-  merge(data2, monthlystats)
-    rm(monthlystats)
-    
-    
-    weeklystats <-
-      data2 %>%  group_by(Week) %>% summarise(weeklycount = n())
-    data2 <-  merge(data2, weeklystats)
-    rm(weeklystats)
-    
-    
-    weekdaystats <-
-      data2 %>%  group_by(Weekday) %>% summarise(weekdaycount = n())
-    data2 <-  merge(data2, weekdaystats)
-    rm(weekdaystats)
-    
-    
-    dailystats <-
-      data2 %>%  group_by(Date) %>% summarise(dailycount = n())
-    data2 <-  merge(data2, dailystats)
-    rm(dailystats)
-    
-    
-    hourlystats <-
-      data2 %>%  group_by(Hour) %>% summarise(hourlycount = n())
-    data2 <-  merge(data2, hourlystats)
-    rm(hourlystats)
-    data2
+    return(data2)
     
   })
   
@@ -158,237 +117,144 @@ server <- function(input, output, session) {
   )
   
   
+  
+  
   #Search Count Analysis-------------
   # graphs of different kind
   #graph for year
   
   
+  color_scheme <- list(low= "grey", high= "tomato")
+  
   graph_ggplot <- reactive({
     if (input$analysis_type == "yearly") {
       yearlyplot <- ggplot(data = range_selected_data(),
-                           aes(x = as.Date(Year),y =  yearlycount)) +
-        stat_summary(
-          fun = length,
-          # adds up all observations for the month
-          geom = "bar",
-          colour = "dark blue",
-          alpha = 0.8
-        ) + # or "line"
-        # stat_summary(
-        #   fun.y = length,
-        #   # adds up all observations for the month
-        #   geom = "line",
-        #   colour = "red",
-        #   alpha = 1,
-        #   size = 0.8
-        # ) + # or "line"
-        geom_smooth() +
-        scale_x_date(labels = date_format("%Y"),
-                     date_breaks = "1 year") +
-        labs(title = "Yearly Searches", x = "Time", y = "Count") +
-        theme(
-          axis.text.x = element_text(angle = 45, hjust = 1),
-          plot.title = element_text(hjust = 0.5)
-        )
+               aes(Year, fill=..count..)) +
+        geom_bar()+
+        scale_x_yearqtr(
+          labels = date_format("%Y"),n = min(length(unique(data_timechanged$Year)), 10)
+        )+
+         scale_fill_gradient(low= color_scheme$low, high = color_scheme$high)+
+        theme_bw()+
+        labs(title= "Yearly Searches",x= "Time", y= "Count")+
+        theme(axis.text.x = element_text(angle=45, hjust=1),
+              plot.title = element_text(hjust = 0.5))
+        
       return(yearlyplot)
     }
     if (input$analysis_type == "quarterly") {
-      quarterlyplot <- 
-        ggplot(data = range_selected_data(),
-               aes(
-                 x=as.Date(as.yearqtr(timestamp), format = "%Y-%m-%d"),
-                 y=quarterlycount
-               )) +
-        stat_summary(
-          fun.y = length,
-          # adds up all observations for the month
-          geom = "bar",
-          colour = "dark blue",
-          alpha = 0.8
-        ) + # or "line"
-        # stat_summary(
-        #   fun.y = length,
-        #   # adds up all observations for the month
-        #   geom = "line",
-        #   colour = "red",
-        #   alpha = 1,
-        #   size = 0.8
-        # ) + # or "line"
-        # geom_point(colour="red", alpha= 0.5, shape= 21)+
-        geom_smooth() +
-        labs(title = "Quarterly Searches", x = "Time", y = "Count") +
-        theme(
-          axis.text.x = element_text(angle = 45, hjust = 1),
-          plot.title = element_text(hjust = 0.5)
-        )
+      quarterlyplot <- ggplot(data = range_selected_data(),
+               aes(x=Quarter, fill= ..count..)) +
+        geom_bar()+
+        # geom_density(data = data_timechanged,mapping = aes(x = Quarter,
+        #                                                    y = (..count..)/3),
+        #              color="red",size = 1.1,inherit.aes = F)+
+        scale_x_yearqtr(format="%Y -%q",)+
+         scale_fill_gradient(low= color_scheme$low, high = color_scheme$high)+
+        theme_bw()+
+        labs(title= "Quarterly Searches",x= "Time", y= "Count")+
+        theme(axis.text.x = element_text(angle=45, hjust=1),
+              plot.title = element_text(hjust = 0.5))
       return(quarterlyplot)
     }
     if (input$analysis_type == "monthly") {
       monthlyplot <- ggplot(data = range_selected_data(),
-                            aes(as.Date(cut(timestamp, breaks = "month")), monthlycount)) +
-        stat_summary(
-          fun.y = length,
-          # adds up all observations for the month
-          geom = "bar",
-          colour = "dark blue",
-          alpha = 0.8
-        ) + # or "line"
-        # stat_summary(fun.y = length, # adds up all observations for the month
-        #              geom = "line", colour= "red", alpha= 1, size= 0.8) + # or "line"
-        # geom_point(colour="red", alpha= 0.5, shape= 21)+
-        # geom_smooth() +
-        scale_x_date(labels = date_format("%b-'%y"),
-                     date_breaks = "1 month") +
-        labs(title = "Monthly Searches", x = "Time", y = "Count") +
-        theme(
-          axis.text.x = element_text(angle = 45, hjust = 1),
-          plot.title = element_text(hjust = 0.5)
-        )
+               aes(x=Month, fill=..count.., group= Year)) +
+        geom_bar()+
+         scale_fill_gradient(low= color_scheme$low, high = color_scheme$high)+
+        theme_bw()+
+        labs(title= "Monthly Searches",x= "Time", y= "Count")+
+        theme(axis.text.x = element_text(angle=45, hjust=1),
+              plot.title = element_text(hjust = 0.5))+ facet_grid(~Year, scales = "free")
       return(monthlyplot)
     }
     
     if (input$analysis_type == "weekly") {
       weeklyplot <- ggplot(data = range_selected_data(),
-                           aes(as.Date(Week), weeklycount)) +
-        stat_summary(
-          fun.y = length,
-          # adds up all observations for the month
-          geom = "bar",
-          colour = "dark blue",
-          alpha = 0.5
-        ) + # or "line"
-        # stat_summary(fun.y = length, # adds up all observations for the month
-        #              geom = "line", colour= "red", alpha= 0.8) + # or "line"
-        geom_smooth() +
-        # geom_point(colour="red", alpha= 0.5, shape= 21)+
-        scale_x_date(labels = date_format("%d-%b-'%y"),
-                     date_breaks = "2 week") +
-        labs(title = "Weekly Searches", x = "Time", y = "Count") +
-        theme(
-          axis.text.x = element_text(angle = 45, hjust = 1),
-          plot.title = element_text(hjust = 0.5)
-        )
+               aes(x = Week, fill=..count..)) +
+        geom_bar(stat = "count")+
+         scale_fill_gradient(low= color_scheme$low, high = color_scheme$high)+
+        theme_bw()+
+        labs(title= "Weekly Searches",x= "Week Number", y= "Count")+
+        theme(axis.text.x = element_text(angle=45, hjust=1),
+              plot.title = element_text(hjust = 0.5))
       return(weeklyplot)
     }
     
     if (input$analysis_type == "daily") {
       dailyplot <- ggplot(data = range_selected_data(),
-                          aes(as.Date(Hour), dailycount)) +
-        stat_summary(
-          fun.y = length,
-          # adds up all observations for the month
-          geom = "bar",
-          colour = "dark blue",
-          alpha = 0.5
-        ) + # or "line"
-        # stat_summary(fun.y = length, # adds up all observations for the month
-        #              geom = "line", colour= "red", alpha= 0.8) + # or "line"
-        geom_smooth() +
-        # geom_point(colour="red", alpha= 0.5, shape= 21)+
-        scale_x_date(labels = date_format("%d-%b-'%y"),
-                     date_breaks = "1 month") +
-        labs(title = "Daily Searches", x = "Time", y = "Count") +
-        theme(
-          axis.text.x = element_text(angle = 45, hjust = 1),
-          plot.title = element_text(hjust = 0.5)
-        )
+               aes(x = Date)) +
+        geom_bar(stat = "count", mapping = aes(fill=..count..))+
+         scale_fill_gradient(low= color_scheme$low, high = color_scheme$high)+
+        theme_bw()+
+        scale_x_date(
+          labels = date_format("%d-%b-'%y")
+        )+
+        labs(title= "Daily Searches",x= "Time", y= "Count")+
+        theme(axis.text.x = element_text(angle=45, hjust=1),
+              plot.title = element_text(hjust = 0.5))
+      
       return(dailyplot)
     }
     if (input$analysis_type == "hourly") {
-      hourlyplot <- ggplot(range_selected_data(), aes(x=allhour,y= hourlycount))+
-        stat_summary(aes(x= as.numeric(allhour),y= hourlycount),fun.y = length, # adds up all observations for the month
-                     geom = "bar", colour= "dark blue", alpha= 0.7)+
-        # stat_summary(aes(x= as.numeric(allhour),y= hourlycount),fun.y = length, # adds up all observations for the month
-        #              geom = "line", colour= "red", alpha= 0.8, size= 1) +
-        labs(title= "Hourly Searches",x= "Time(in Hours)", y= "Count")+
-        # scale_x_discrete(labels= (data_timechanged$allhour))+
+      hourlyplot <- ggplot(range_selected_data(), aes(x=Hour, fill=..count..))+
+        geom_bar()+
+         scale_fill_gradient(low= color_scheme$low, high = color_scheme$high)+
+        theme_bw()+
         theme(plot.title = element_text(hjust = 0.5))
-      
-      # geom_freqpoly(bins=12, alpha=0.7,colour="red",closed = c("right", "left"))+
-      # geom_point(aes(y= hourlycount))
-      # geom_histogram(bins=12, alpha=0.5, colour="black",fill="blue")
-      # geom_line()+geom_point()#+scale_x_datetime()
+     
       return(hourlyplot)
     }
     if (input$analysis_type == "weekdays") {
-      weekdayplot <-
-        ggplot(data = range_selected_data(), aes(x = sort(Weekday), weekdaycount)) +
-        stat_summary(
-          fun.y = length,
-          # adds up all observations for the month
-          geom = "bar",
-          colour = "dark blue",
-          alpha = 0.8
-        ) + # or "line"
-        # stat_summary(fun.y = length, # adds up all observations for the month
-        #              geom = "line", colour= "red", alpha= 1, size= 0.8) + # or "line"
-        # geom_point(colour="red", alpha= 0.5, shape= 21)+
-        geom_smooth() +
-        labs(title = "Searches on various days of the Week", x = "Date", y = "Count") +
-        theme(
-          axis.text.x = element_text(angle = 45, hjust = 1),
-          plot.title = element_text(hjust = 0.5)
-        )
+      weekdayplot <- ggplot(data=range_selected_data(),aes(x= Weekday, fill= ..count..))+
+        geom_bar()+
+         scale_fill_gradient(low= color_scheme$low, high = color_scheme$high)+
+        theme_bw()+
+        labs(title= "Searches on various days of the Week",x= "Date", y= "Count")+
+        theme(axis.text.x = element_text(angle=45, hjust=1),
+              plot.title = element_text(hjust = 0.5))
       return(weekdayplot)
     }
     if (input$analysis_type == "hourly_weekday") {
-      hourly_weekday_plot <- ggplot(range_selected_data(), aes(x=allhour,y= hourlycount, group= Weekday))+
-        stat_summary(aes(x= as.numeric(allhour),y= hourlycount),fun.y = length, # adds up all observations for the month
-                     geom = "bar", colour= "dark blue", alpha= 0.7)+
+      hourly_weekday_plot <- ggplot(range_selected_data(), aes(x=Hour,fill= ..count.., group= Weekday))+
+        geom_bar()+
+         scale_fill_gradient(low= color_scheme$low, high = color_scheme$high)+
+        theme_bw()+
         facet_grid(.~Weekday, scales = "free")+
-        # stat_summary(aes(x= as.numeric(allhour),y= hourlycount),fun.y = length, # adds up all observations for the month
-        #              geom = "line", colour= "red", alpha= 0.8, size= 1) +
         labs(title= "Hourly Searches",x= "Time(in Hours)", y= "Count")+
-        # scale_x_discrete(labels= (data_timechanged$allhour))+
-        theme(plot.title = element_text(hjust = 0.5))
+        theme(axis.text.x = element_text(angle=45, hjust=1),
+              plot.title = element_text(hjust = 0.5))
       return(hourly_weekday_plot)
       
     }
     if (input$analysis_type == "month_pooled") {
       monthpooledplot <-
-        ggplot(range_selected_data(), aes(x = allmonths, y = monthlycount)) +
-        stat_summary(
-          fun.y = length,
-          # adds up all observations for the month
-          geom = "bar",
-          colour = "dark blue",
-          alpha = 0.7
-        ) +
-        # stat_summary(fun.y = length, # adds up all observations for the month
-        #              geom = "line", colour= "red", alpha= 0.8, size= 1) +
-        labs(title = "Searches on various Months of the Year", x = "Months", y = "Count") +
-        scale_x_discrete(labels = month.name) +
-        theme(
-          axis.text.x = element_text(angle = 45, hjust = 1),
-          plot.title = element_text(hjust = 0.5)
-        )
-      return(monthpooledplot)
+      ggplot(data = range_selected_data(),
+               aes(x=Month, fill=..count..)) +
+        geom_bar()+
+         scale_fill_gradient(low= color_scheme$low, high = color_scheme$high)+
+        theme_bw()+
+        labs(title= "Monthly Searches Pooled",x= "Time", y= "Count")+
+        theme(axis.text.x = element_text(angle=45, hjust=1),
+              plot.title = element_text(hjust = 0.5))
+        return(monthpooledplot)
     }
     
     if (input$analysis_type == "dates_pooled") {
       dates_pooled_plot <-
-        ggplot(range_selected_data(), aes(x = alldates, y = dailycount)) +
-        stat_summary(
-          fun.y = length,
-          # adds up all observations for the month
-          geom = "bar",
-          colour = "dark blue",
-          alpha = 0.7
-        ) +
-        # stat_summary(fun.y = length, # adds up all observations for the month
-        #              geom = "line", colour= "red", alpha= 0.8, size= 1) +
-        labs(title = "Searches on various Dates in a Month", x = "Months", y = "Count") +
-        scale_x_discrete(breaks = c(seq(0, 30, 10))) +
-        theme(
-          axis.text.x = element_text(angle = 45, hjust = 1),
-          plot.title = element_text(hjust = 0.5)
-        )
+        ggplot(range_selected_data(), aes(x=lubridate::day(Date),fill= ..count..))+
+        geom_bar()+
+        labs(title= "Searches on various Dates in a Month",x= "Months", y= "Count")+
+         scale_fill_gradient(low= color_scheme$low, high = color_scheme$high)+
+        theme_bw()+
+        theme(axis.text.x = element_text(angle=45, hjust=1),
+              plot.title = element_text(hjust = 0.5)) 
       return(dates_pooled_plot)
     }
   })
   
-  output$graph <- renderPlot({
-    print(graph_ggplot())
+  output$graph <- renderPlotly({
+    ggplotly(graph_ggplot())
   })
   #download searchcount graph--------------
   output$download_searchcount <- downloadHandler(
@@ -474,22 +340,7 @@ server <- function(input, output, session) {
     }
     
   })
-  
-  # wordcloud_plot2 <- reactive({
-  #   # png("wordcloud.png")
-  #   wc <-
-  #     wordcloud(
-  #       matrix_df_words()$word,
-  #       matrix_df_words()$freq,
-  #       scale = c(4, 0.3),
-  #       max.words = 150,
-  #       rot.per = 0.35,
-  #       random.order = FALSE,
-  #       colors = brewer.pal(8, "Dark2")
-  #     )
-  #   return(wc)})
-  
-  
+
   output$wordcloudout <-  renderPlot(print( wordanalysis()))
   wassoc <- eventReactive(input$wordnum, {
     wa <- matrix_df_words() %>% slice(1:5)
@@ -520,9 +371,7 @@ server <- function(input, output, session) {
       wass.df %>% `colnames<-`(c(firstcolname, "Correlation"))
     
   })
-  # wassoc <- eventReactive(input$word_assoc==FALSE,{
-  #   print(("Word Association turned off"))
-  # })
+  
   output$wordassocout <- renderTable({
     wassoc()
   })

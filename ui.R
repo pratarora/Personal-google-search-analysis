@@ -15,6 +15,7 @@ library(shinycssloaders)
 library(rvest)
 library(parsedate)
 library(purrr)
+library(plotly)
 options(shiny.maxRequestSize=100*1024^2)
 options(expressions = 10000)
 options(spinner.type = 1)
@@ -136,7 +137,7 @@ ui <- fluidPage(
     mainPanel(
       conditionalPanel(
         condition = "input.sidetabselection==1",
-        plotOutput("graph", width = 900, height = 700) %>% withSpinner(),
+        plotlyOutput("graph", width = 900, height = 700) %>% withSpinner(),
         downloadButton(outputId = "download_searchcount",
                        label = "Download the plot")
       ),
