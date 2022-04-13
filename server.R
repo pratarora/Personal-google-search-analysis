@@ -58,22 +58,7 @@ server <- function(input, output, session) {
                                search_query = text_search) %>% na.omit()
     data_timechanged %>% head
     rm(date_search,text_search, inputdata)
-    
-    # data_timechanged$Weekday <-
-    #   factor(
-    #     data_timechanged$Weekday,
-    #     levels = c(
-    #       "Sunday",
-    #       "Monday",
-    #       "Tuesday",
-    #       "Wednesday",
-    #       "Thursday",
-    #       "Friday",
-    #       "Saturday"
-    #     )
-    #   )
-    # 
-    data_timechanged
+    return(data_timechanged)
   })
   
   
@@ -81,8 +66,8 @@ server <- function(input, output, session) {
   #set range of date depending on input files
   
   output$date_range <- renderUI({
-    minval <- min(getData()$Date)
-    maxval <- max(getData()$Date)
+    minval <- min(getData()$Date[!is.infinite(getData()$Date)], na.rm = T)
+    maxval <- max(getData()$Date[!is.infinite(getData()$Date)], na.rm = T)
     dateRangeInput(
       'date_range',
       label = "Choose time-frame for analysis:",
@@ -102,6 +87,7 @@ server <- function(input, output, session) {
     data2 <- getData() %>%
       filter(Date >= min(input$date_range) &
                Date <= max(input$date_range))
+
     return(data2)
     
   })
@@ -128,11 +114,12 @@ server <- function(input, output, session) {
   
   graph_ggplot <- reactive({
     if (input$analysis_type == "yearly") {
-      yearlyplot <- ggplot(data = range_selected_data(),
-               aes(Year, fill=..count..)) +
-        geom_bar()+
+      data3 <- range_selected_data() %>% add_count(Year, name = "count") %>% distinct(Year, count) # adding this because stat="count", looses the data ingformation
+      yearlyplot <- ggplot(data = data3,
+               aes(x= Year,y= count, fill=count)) +
+        geom_bar(stat="identity")+
         scale_x_yearqtr(
-          labels = date_format("%Y"),n = min(length(unique(data_timechanged$Year)), 10)
+          labels = date_format("%Y"),n = min(length(unique(range_selected_data()$Year)), 10)
         )+
          scale_fill_gradient(low= color_scheme$low, high = color_scheme$high)+
         theme_bw()+
@@ -143,9 +130,10 @@ server <- function(input, output, session) {
       return(yearlyplot)
     }
     if (input$analysis_type == "quarterly") {
-      quarterlyplot <- ggplot(data = range_selected_data(),
-               aes(x=Quarter, fill= ..count..)) +
-        geom_bar()+
+      data3 <- range_selected_data() %>% add_count(Quarter, name = "count") %>% distinct(Quarter, Year, count) # adding this because stat="count", looses the data ingformation
+      quarterlyplot <- ggplot(data = data3,
+               aes(x=Quarter, y= count, fill= count)) +
+        geom_bar(stat="identity")+
         # geom_density(data = data_timechanged,mapping = aes(x = Quarter,
         #                                                    y = (..count..)/3),
         #              color="red",size = 1.1,inherit.aes = F)+
@@ -158,10 +146,13 @@ server <- function(input, output, session) {
       return(quarterlyplot)
     }
     if (input$analysis_type == "monthly") {
-      monthlyplot <- ggplot(data = range_selected_data(),
-               aes(x=Month, fill=..count.., group= Year)) +
-        geom_bar()+
-         scale_fill_gradient(low= color_scheme$low, high = color_scheme$high)+
+      data3 <- range_selected_data() %>% add_count(Month, name = "count") %>% distinct(Month, Year, count) # adding this because stat="count", looses the data ingformation
+      
+      monthlyplot <-  ggplot(data=data3,
+                             aes(x=Month, y=count,fill=count, group= Year
+             )) +
+        geom_bar(stat = "identity")+
+        scale_fill_gradient(low= color_scheme$low, high = color_scheme$high)+
         theme_bw()+
         labs(title= "Monthly Searches",x= "Time", y= "Count")+
         theme(axis.text.x = element_text(angle=45, hjust=1),
@@ -170,9 +161,10 @@ server <- function(input, output, session) {
     }
     
     if (input$analysis_type == "weekly") {
-      weeklyplot <- ggplot(data = range_selected_data(),
-               aes(x = Week, fill=..count..)) +
-        geom_bar(stat = "count")+
+      data3 <- range_selected_data() %>% add_count(Week, name = "count") %>% distinct(Week, Year, count) # adding this because stat="count", looses the data ingformation
+      weeklyplot <- ggplot(data = data3,
+               aes(x = Week, y= count, fill=count)) +
+        geom_bar(stat = "identity")+
          scale_fill_gradient(low= color_scheme$low, high = color_scheme$high)+
         theme_bw()+
         labs(title= "Weekly Searches",x= "Week Number", y= "Count")+
@@ -182,9 +174,10 @@ server <- function(input, output, session) {
     }
     
     if (input$analysis_type == "daily") {
-      dailyplot <- ggplot(data = range_selected_data(),
-               aes(x = Date)) +
-        geom_bar(stat = "count", mapping = aes(fill=..count..))+
+      data3 <- range_selected_data() %>% add_count(Date, name = "count") %>% distinct(Date,Month, Year, count) # adding this because stat="count", looses the data ingformation
+      dailyplot <- ggplot(data = data3,
+               aes(x = Date, y= count, fill=count)) +
+        geom_bar(stat = "identity")+
          scale_fill_gradient(low= color_scheme$low, high = color_scheme$high)+
         theme_bw()+
         scale_x_date(
@@ -197,8 +190,9 @@ server <- function(input, output, session) {
       return(dailyplot)
     }
     if (input$analysis_type == "hourly") {
-      hourlyplot <- ggplot(range_selected_data(), aes(x=Hour, fill=..count..))+
-        geom_bar()+
+      data3 <- range_selected_data() %>% add_count(Hour, name = "count") %>% distinct(Hour, count) # adding this because stat="count", looses the data ingformation
+      hourlyplot <- ggplot(data3, aes(x=Hour, y=count,fill=count))+
+        geom_bar(stat="identity")+
          scale_fill_gradient(low= color_scheme$low, high = color_scheme$high)+
         theme_bw()+
         theme(plot.title = element_text(hjust = 0.5))
@@ -206,8 +200,9 @@ server <- function(input, output, session) {
       return(hourlyplot)
     }
     if (input$analysis_type == "weekdays") {
-      weekdayplot <- ggplot(data=range_selected_data(),aes(x= Weekday, fill= ..count..))+
-        geom_bar()+
+      data3 <- range_selected_data() %>% add_count(Weekday, name = "count") %>% distinct(Weekday, count) # adding this because stat="count", looses the data ingformation
+      weekdayplot <- ggplot(data=data3,aes(x= Weekday, y=count, fill= count))+
+        geom_bar(stat="identity")+
          scale_fill_gradient(low= color_scheme$low, high = color_scheme$high)+
         theme_bw()+
         labs(title= "Searches on various days of the Week",x= "Date", y= "Count")+
@@ -228,10 +223,12 @@ server <- function(input, output, session) {
       
     }
     if (input$analysis_type == "month_pooled") {
+      data3 <- range_selected_data() %>% add_count(Month, name = "count") %>% distinct(Month, count) # adding this because stat="count", looses the data ingformation
+      
       monthpooledplot <-
-      ggplot(data = range_selected_data(),
-               aes(x=Month, fill=..count..)) +
-        geom_bar()+
+      ggplot(data = data3,
+               aes(x=Month, y= count,fill=count)) +
+        geom_bar(stat="identity")+
          scale_fill_gradient(low= color_scheme$low, high = color_scheme$high)+
         theme_bw()+
         labs(title= "Monthly Searches Pooled",x= "Time", y= "Count")+
@@ -241,9 +238,10 @@ server <- function(input, output, session) {
     }
     
     if (input$analysis_type == "dates_pooled") {
+      data3 <- range_selected_data() %>% mutate(Date_of_Month=lubridate::day(Date))%>% add_count(Date_of_Month, name = "count") %>% distinct(Date_of_Month, count) # adding this because stat="count", looses the data ingformation
       dates_pooled_plot <-
-        ggplot(range_selected_data(), aes(x=lubridate::day(Date),fill= ..count..))+
-        geom_bar()+
+        ggplot(data3, aes(x=Date_of_Month,y=count, fill=count))+
+        geom_bar(stat="identity")+
         labs(title= "Searches on various Dates in a Month",x= "Months", y= "Count")+
          scale_fill_gradient(low= color_scheme$low, high = color_scheme$high)+
         theme_bw()+
@@ -252,9 +250,9 @@ server <- function(input, output, session) {
       return(dates_pooled_plot)
     }
   })
-  
+ 
   output$graph <- renderPlotly({
-    ggplotly(graph_ggplot())
+    ggplotly(graph_ggplot(),tooltip = c("y","x"))
   })
   #download searchcount graph--------------
   output$download_searchcount <- downloadHandler(
@@ -321,16 +319,16 @@ server <- function(input, output, session) {
     
     if (input$word_analysis_type == "word_freq") {
       wf <- matrix_df_words() %>% slice(1:20)
+      print(head(wf))
       word_freq_plot <-
         ggplot(data = wf , aes(
           x = reorder(word,-freq),
           y = freq,
-          fill = word
+          fill = freq
         )) +
         geom_bar(stat = "identity") +
-        scale_fill_grey(start = 0.8,
-                        end = 0.2,
-                        guide = FALSE) +
+        scale_fill_gradient(low= color_scheme$low, high = color_scheme$high)+
+        theme_bw()+
         theme(
           axis.text.x = element_text(angle = 60, hjust = 1),
           plot.title = element_text(hjust = 0.5)
