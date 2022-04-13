@@ -327,7 +327,7 @@ server <- function(input, output, session) {
           fill = freq
         )) +
         geom_bar(stat = "identity") +
-        scale_fill_gradient(low= color_scheme$low, high = color_scheme$high)+
+         scale_fill_gradient(low= color_scheme$low, high = color_scheme$high)+
         theme_bw()+
         theme(
           axis.text.x = element_text(angle = 60, hjust = 1),
@@ -339,7 +339,7 @@ server <- function(input, output, session) {
     
   })
 
-  output$wordcloudout <-  renderPlot(print( wordanalysis()))
+  output$wordcloudout <-  renderPlot(print(wordanalysis()))
   wassoc <- eventReactive(input$wordnum, {
     wa <- matrix_df_words() %>% slice(1:5)
     wa$word <- as.character(wa$word)
@@ -367,7 +367,7 @@ server <- function(input, output, session) {
       paste("Words associated with - ", wa$word[n], sep = " ")
     wass.df <-
       wass.df %>% `colnames<-`(c(firstcolname, "Correlation"))
-    
+    print(head(wass.df))
   })
   
   output$wordassocout <- renderTable({
@@ -402,9 +402,9 @@ server <- function(input, output, session) {
   #   },
   #   content = function(file) {
   #     pdf(file)
-  #     print(wordcloud_plot2())
+  #     print(wordanalysis())
   #     dev.off()
-  # 
+  #     contentType = 'application/pdf'
   # })
   # 
   # session$onSessionEnded(function() {

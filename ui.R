@@ -137,23 +137,28 @@ ui <- fluidPage(
     mainPanel(
       conditionalPanel(
         condition = "input.sidetabselection==1",
-        plotlyOutput("graph", width = 900, height = 700) %>% withSpinner(),
+        fluidRow(
+        plotlyOutput("graph", width = "100%", height=500) %>% withSpinner()
+        ),
+        fluidRow(
         downloadButton(outputId = "download_searchcount",
                        label = "Download the plot")
-      ),
+      )),
       conditionalPanel(
         condition = "input.sidetabselection==2",
         
         conditionalPanel(condition = "input.word_analysis_type==wordcloud",
+                         fluidRow(
                          plotOutput(
-                           "wordcloudout", width = 500, height = 500
-                         )%>% withSpinner()#,
+                           "wordcloudout", width = "100%", height = 500
+                         )%>% withSpinner()
+                         )#,
                          # downloadButton(outputId = "wordcloudplot",
                          #                label = "Download the plot")
         ),
         
         # uiOutput("wordassocout")
-        p(conditionalPanel(condition = "input.word_topic=true",
+        fluidRow(conditionalPanel(condition = "input.word_topic=true",
                            verbatimTextOutput("wordtopicout"))%>% withSpinner()),
         conditionalPanel(condition = "input.word_assoc=true",column(1,
                                                                     tableOutput("wordassocout")))
