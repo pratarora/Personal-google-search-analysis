@@ -12,7 +12,7 @@ create_app(
   app_name = "SearchAna", 
   app_dir = "E:/Data Science/Google data Prateek January 2018/google data/Analysis/Searches/Personal-google-search-analysis/SearchAna",
   pkgs = c("shiny", "ggplot2","dplyr","lubridate","scales","stringr","tm","RColorBrewer",
-           "wordcloud", "tidytext","zoo","monkeylearn","parsedate","rvest","purrr","jsonlite","magrittr"),
+           "wordcloud", "tidytext","zoo","monkeylearn","parsedate","rvest","purrr","jsonlite","magrittr", "plotly","shinythemes", "shinycssloaders"),
   include_R   = TRUE,     # Download R and install it with your app
   R_version   = "3.5.1",
   privilege   = "lowest",   # Does not require Admin installation
@@ -22,5 +22,4 @@ create_app(
 compile_iss()
 
 install.packages(c("shiny", "ggplot2","dplyr","lubridate","scales","stringr","tm","RColorBrewer",
-                   "wordcloud", "tidytext","zoo","monkeylearn","parsedate","rvest"))
-
+           "wordcloud", "tidytext","zoo","monkeylearn","parsedate","rvest","purrr","jsonlite","magrittr", "plotly","shinythemes", "shinycssloaders"))

@@ -4,7 +4,7 @@
 #
 
 my_packages = c("shiny", "ggplot2","dplyr","lubridate","scales","stringr","tm","RColorBrewer",
-         "wordcloud", "tidytext","zoo","parsedate","rvest","purrr", "shinythemes","shinycssloaders")
+         "wordcloud", "tidytext","zoo","parsedate","rvest","purrr", "shinythemes","shinycssloaders", "plotly")
 
 install_if_missing = function(p) {
   if (p %in% rownames(installed.packages()) == FALSE) {
