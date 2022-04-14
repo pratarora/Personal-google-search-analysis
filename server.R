@@ -15,7 +15,7 @@ library(rvest)
 library(parsedate)
 library(purrr)
 library(plotly)
-options(shiny.maxRequestSize=20*1024^2)
+options(shiny.maxRequestSize=20*1024^2) #change here "200" to no. of MBs you want the file size to be uploaded 
 options(expressions = 10000)
 options(spinner.type = 1)
 
@@ -56,7 +56,13 @@ server <- function(input, output, session) {
                                Quarter =  lubridate::quarter(date_search),
                                Year = lubridate::year(date_search),
                                search_query = text_search) %>% na.omit()
-    data_timechanged %>% head
+    
+    data_timechanged$Weekday <- factor(data_timechanged$Weekday, levels = c( "Monday", "Tuesday", "Wednesday", "Thursday", "Friday","Saturday","Sunday"))
+    
+    
+    
+    
+    
     rm(date_search,text_search, inputdata)
     return(data_timechanged)
   })
@@ -130,17 +136,14 @@ server <- function(input, output, session) {
       return(yearlyplot)
     }
     if (input$analysis_type == "quarterly") {
-      data3 <- range_selected_data() %>% add_count(Quarter, name = "count") %>% distinct(Quarter, Year, count) # adding this because stat="count", looses the data ingformation
+      data3 <- range_selected_data() %>% add_count(Quarter, name = "count") %>% distinct(Quarter, count) # adding this because stat="count", looses the data ingformation
       quarterlyplot <- ggplot(data = data3,
                aes(x=Quarter, y= count, fill= count)) +
-        geom_bar(stat="identity")+
-        # geom_density(data = data_timechanged,mapping = aes(x = Quarter,
-        #                                                    y = (..count..)/3),
-        #              color="red",size = 1.1,inherit.aes = F)+
-        scale_x_yearqtr(format="%Y -%q",)+
+        geom_bar(stat="identity")+  
+        scale_x_yearqtr(format="%Y",)+
          scale_fill_gradient(low= color_scheme$low, high = color_scheme$high)+
         theme_bw()+
-        labs(title= "Quarterly Searches",x= "Time", y= "Count")+
+        labs(title= "Quarterly Searches",x= "Quarter Number", y= "Count")+
         theme(axis.text.x = element_text(angle=45, hjust=1),
               plot.title = element_text(hjust = 0.5))
       return(quarterlyplot)
@@ -161,7 +164,7 @@ server <- function(input, output, session) {
     }
     
     if (input$analysis_type == "weekly") {
-      data3 <- range_selected_data() %>% add_count(Week, name = "count") %>% distinct(Week, Year, count) # adding this because stat="count", looses the data ingformation
+      data3 <- range_selected_data() %>% add_count(Week, name = "count") %>% distinct(Week, count) # adding this because stat="count", looses the data ingformation
       weeklyplot <- ggplot(data = data3,
                aes(x = Week, y= count, fill=count)) +
         geom_bar(stat = "identity")+
@@ -340,7 +343,8 @@ server <- function(input, output, session) {
   })
 
   output$wordcloudout <-  renderPlot(print(wordanalysis()))
-  wassoc <- eventReactive(input$wordnum, {
+ 
+   wassoc <- eventReactive(input$wordnum, {
     wa <- matrix_df_words() %>% slice(1:5)
     wa$word <- as.character(wa$word)
     
@@ -362,38 +366,32 @@ server <- function(input, output, session) {
     
     wass <-
       findAssocs(tdm_words(), terms = wa$word[n], corlimit = 0.1)
-    wass.df <- as.data.frame(wass) %>% add_rownames("VALUE")
-    firstcolname <-
-      paste("Words associated with - ", wa$word[n], sep = " ")
-    wass.df <-
-      wass.df %>% `colnames<-`(c(firstcolname, "Correlation"))
+    wass.df <- as.data.frame(wass) %>% rownames_to_column("Associated_Words") %>% 
+      `colnames<-`(c("Associated_Words", "Correlation")) %>% arrange(-Correlation)
+    
+
+    
     print(head(wass.df))
+    
+    word_assoc_graph <- ggplot(data= wass.df, aes(x= reorder(Associated_Words, -Correlation), y=Correlation , fill = Correlation))+
+      geom_bar(stat="identity")+
+      scale_fill_gradient(low= color_scheme$low, high = color_scheme$high)+
+      theme_bw()+
+      theme(
+        axis.text.x = element_text(angle = 60, hjust = 1),
+        plot.title = element_text(hjust = 0.5)
+      ) +
+      labs(title = "Associated words with search query", x = "Words", y = "Correlation")
+    
   })
   
-  output$wordassocout <- renderTable({
+  output$wordassocout <- renderPlotly({
     wassoc()
   })
   
   
-  monkeylearntopic <- reactive({
-    if(input$word_topic==TRUE) {
-      Sys.getenv("MONKEYLEARN_KEY")
-      dd <- matrix_df_words()
-      dd %>% map_if(is.factor, as.character) %>% as_data_frame -> dd
-      aa <- dd$word[1]
-      
-      monkey_topic <- monkey_classify(input = dd$word[1],key = monkeylearn_key(quiet = TRUE),
-                                      classifier_id = "cl_o46qggZq")
-      output_monkey <- monkey_topic %>% unnest() %>% as.data.frame()
-      print(paste(output_monkey$req,"is usually associated with", output_monkey$label,"( probability =",output_monkey$probability,", confidence =",output_monkey$confidence,")"), sep=" "
-      )
-      
-    }
-    else{print("Word Analysis")}
-  })
-  output$wordtopicout <- renderText({
-    print(monkeylearntopic())
-  })
+ 
+  
   output$wordfreqout <- renderPlot(print(wordanalysis()))
   
   # output$wordcloudplot <- downloadHandler(

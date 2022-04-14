@@ -124,7 +124,7 @@ ui <- fluidPage(
               )
             )
           ),
-          checkboxInput(inputId = "word_topic", label = "See what topic is your top word usually associated with? (Does not work on locations/numbers -- Remove them from analysis to know the topics)(May not work-- Requires Monkeylearn ID and API; contact author for details) " , FALSE)
+
         )  
         
       )
@@ -158,10 +158,13 @@ ui <- fluidPage(
         ),
         
         # uiOutput("wordassocout")
-        fluidRow(conditionalPanel(condition = "input.word_topic=true",
-                           verbatimTextOutput("wordtopicout"))%>% withSpinner()),
-        conditionalPanel(condition = "input.word_assoc=true",column(1,
-                                                                    tableOutput("wordassocout")))
+        # fluidRow(conditionalPanel(condition = "input.word_topic=true",
+        #                    verbatimTextOutput("wordtopicout"))%>% withSpinner()),
+        conditionalPanel(condition = "input.word_assoc=true",
+                         
+                         plotlyOutput("wordassocout", width = "100%", height=500) %>% withSpinner()
+                         
+                         )
         
         # conditionalPanel(condition ="input.word_assoc=false",
         # removeUI("wordassocout"))
