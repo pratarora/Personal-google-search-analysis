@@ -341,12 +341,8 @@ server <- function(input, output, session) {
     }
     
   })
-  if(is.null(range_selected_data())){}
-  else{
-    output$wordcloudout <-  
-      renderPlot(print(wordanalysis()))
-  }
-  
+
+  output$wordcloudout <-  renderPlot(print(wordanalysis()))
  
    wassoc <- eventReactive(input$wordnum, {
     wa <- matrix_df_words() %>% slice(1:5)
