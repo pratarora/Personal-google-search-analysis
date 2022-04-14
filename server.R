@@ -315,7 +315,7 @@ server <- function(input, output, session) {
           max.words = 150,
           rot.per = 0.35,
           random.order = FALSE,
-          colors = brewer.pal(8, "Dark2")
+          colors = rev(brewer.pal(n = 8,name =  "RdGy"))
         )
       return(wc)
     }
@@ -341,8 +341,12 @@ server <- function(input, output, session) {
     }
     
   })
-
-  output$wordcloudout <-  renderPlot(print(wordanalysis()))
+  if(is.null(range_selected_data())){}
+  else{
+    output$wordcloudout <-  
+      renderPlot(print(wordanalysis()))
+  }
+  
  
    wassoc <- eventReactive(input$wordnum, {
     wa <- matrix_df_words() %>% slice(1:5)
