@@ -366,7 +366,7 @@ server <- function(input, output, session) {
     
     wass <-
       findAssocs(tdm_words(), terms = wa$word[n], corlimit = 0.1)
-    wass.df <- as.data.frame(wass) %>% rownames_to_column("Associated_Words") %>% 
+    wass.df <- as.data.frame(wass) %>% add_rownames("Associated_Words") %>% 
       `colnames<-`(c("Associated_Words", "Correlation")) %>% arrange(-Correlation)
     
 
